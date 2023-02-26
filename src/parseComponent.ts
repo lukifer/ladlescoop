@@ -6,6 +6,7 @@ import {
   getFirstOfKind,
   getName,
   isExported,
+  traverse,
 } from "./tsnode"
 import {
   DefaultValue,
@@ -15,30 +16,43 @@ import {
 } from "./types"
 import {warn} from "./utils"
 
+export function getFnFromProps(format: string, propsName: string) {
+  const reg = new RegExp("^"+format.replace("{Component}", "([A-Z][a-zA-Z0-9_]+)")+"$")
+  const match = reg.exec(propsName)
+  return match?.length && match[1]
+}
+
 export function handleType(state: State, typeDeclaration: ts.TypeAliasDeclaration): State {
   return produce(state, draft => {
     const propsName = getName(typeDeclaration)
-    const match = propsName.match(/^([A-Z][a-zA-Z0-9_]+)Props$/)
-    if (match?.length !== 2) return state
+    const fnName = getFnFromProps(state.propsFormat, propsName)
+    if (!fnName) return state
 
-    const fnName = match[1]
     const typeLiteral = getFirstOfKind(typeDeclaration, ts.SyntaxKind.TypeLiteral)
-    if (!typeLiteral || !ts.isTypeLiteralNode(typeLiteral)) return
+    if (!typeLiteral || !ts.isTypeLiteralNode(typeLiteral)) return state
 
     typeLiteral.members.forEach(prop => {
-      if (
-           !ts.isPropertySignature(prop)
-        || !ts.isIdentifier(prop.name)
-        || !prop.type
-        || !ts.isTypeNode(prop.type)
-      ) return
-      const propName = prop.name.escapedText.toString()
-      if (!draft.componentsMap[fnName]) {
-        draft.componentsMap[fnName] = {props: {}}
-      }
-
-      mutableAddProp(draft, fnName, propName, prop.type, !!prop.questionToken)
+      mutableAddProp(draft, fnName, prop)
     })
+    return draft
+  })
+}
+
+export function handleInterface(
+  state: State,
+  interfaceDeclaration: ts.InterfaceDeclaration
+): State {
+  return produce(state, draft => {
+    const propsName = getName(interfaceDeclaration)
+    const fnName = getFnFromProps(state.propsFormat, propsName)
+    if (!fnName) return state
+
+    const props = getChildrenOfKind(interfaceDeclaration, [ts.SyntaxKind.PropertySignature])
+
+    props?.forEach((prop) => {
+      mutableAddProp(draft, fnName, prop)
+    })
+
     return draft
   })
 }
@@ -46,13 +60,28 @@ export function handleType(state: State, typeDeclaration: ts.TypeAliasDeclaratio
 export function mutableAddProp(
   draft: Draft<State>,
   fnName: string,
-  propName: string,
-  typeNode: ts.TypeNode,
-  isOptional: boolean
+  prop: ts.Node,
 ): void {
-  const set = (p: Pick<Prop, "kind" | "type" | "argType">): void => {
-    draft.componentsMap[fnName].props[propName] = {...p, name: propName, isOptional}
+  if (
+       !ts.isPropertySignature(prop)
+    || !ts.isIdentifier(prop.name)
+    || !ts.isTypeNode(prop.type)
+  ) return
+
+  const propName = prop.name.escapedText.toString()
+  if (!draft.componentsMap[fnName]) {
+    draft.componentsMap[fnName] = {props: {}}
   }
+
+  const set = (p: Pick<Prop, "kind" | "type" | "argType">): void => {
+    draft.componentsMap[fnName].props[propName] = {
+      ...p,
+      name: propName,
+      isOptional: !!prop.questionToken
+    }
+  }
+
+  const typeNode = prop.type
   const {kind} = typeNode
   switch (kind) {
     case ts.SyntaxKind.UnionType:
@@ -64,7 +93,7 @@ export function mutableAddProp(
           argType: {
             control: {
               options: typeNode.types.map(t => t.getText()),
-              type: "select", // TODO: radio, inline-radio
+              type: typeNode.types.length > 2 ? "select" : "radio",
             },
           }
         })
@@ -110,14 +139,6 @@ export function mutableAddProp(
       }
       return set(propSet)
   }
-}
-
-export function handleInterface(
-  state: State,
-  _statement: ts.InterfaceDeclaration
-): State {
-  // TODO
-  return produce(state, draft => draft)
 }
 
 export function handleEnum(
@@ -205,9 +226,22 @@ export function mutableAddPropBinding(
           draft.enumsImport.push(enumName)
         }
         return set(`${enumName}.${getName(token, 1)}`)
-      // case ts.SyntaxKind.TypeReference:
-      //   if (!ts.isTypeReferenceNode) return
-      //   return set(`${getName(token)}.${getName(token, 1)}`)
     }
+  })
+}
+
+export function handleImport(state: State, importDeclaration: ts.ImportDeclaration) {
+  const namedImports = traverse(importDeclaration, [
+    [ts.SyntaxKind.ImportClause, 0],
+    [ts.SyntaxKind.NamedImports, 0],
+    [ts.SyntaxKind.ImportSpecifier],
+  ])
+  const path = getFirstOfKind(importDeclaration, ts.SyntaxKind.StringLiteral)
+  return produce(state, draft => {
+    namedImports?.forEach(namedImport => {
+      const importName = getName(namedImport)
+      draft.importsMap[importName] = path.getText()
+    })
+    return draft
   })
 }

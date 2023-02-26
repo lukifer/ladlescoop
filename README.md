@@ -5,8 +5,7 @@ Automatically generate [Ladle](https://ladle.dev) stories from existing React co
 Still a WIP: currently works on one file at a time, with the following assumptions:
 - TypeScript only
 - Components defined with `function`, rather than `const MyComponent = () => ...`
-- Props type definition is a `type`, not an `interface`
-- ...with a name convention of `MyComponentProps`
+- Props type has a name convention of `MyComponentProps`
 - ...defined in the same file as component
 
 Story files are written based on component name, not input file. An input file of `Foo.tsx` containing `function Bar` and `function Baz` will write `Bar.stories.tsx` and `Baz.stories.tsx`. Overwrites are ignored by default; use `--overwrite` if you wish to live dangerously.
@@ -24,12 +23,11 @@ npm test -- -u # update snapshots
 ```
 
 ##### TODO:
-- Props interfaces in addition to types
-- Pseudo-enum object constants, in addition to `enum`
+- Parsing constants and pseudo-enum object constants
 - Reading external imports for type definitions
+- Templates or component wrappers (for providers, query mocking, etc)
 - Parsing plain JS in addition to TypeScript
 - Multiple files and directories on CLI
-- Settings for naming conventions (eg, `FooPropsType` in addition to `FooProps`)
 - Settings for control prefences (`select` vs `radio`, etc)
 - Array types and other nested props
 - More unit test coverage

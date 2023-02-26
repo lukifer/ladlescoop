@@ -32,6 +32,17 @@ export function getName(el: ts.Node, n = 0) {
   return identifier.escapedText || ''
 }
 
+export function traverse(el: ts.Node, path: Array<[ts.SyntaxKind, number?]>): ts.Node[] {
+  const [next, ...remainder] = path
+  const nodes = getChildrenOfKind(el, [next[0]])
+  if (!nodes) return
+
+  if (remainder?.length)
+    return traverse(nodes[next[1] || 0], remainder)
+
+  return nodes
+}
+
 export function isExported(el: ts.Node) {
   return !!(el.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword))
 }

@@ -9,12 +9,14 @@ import {indent} from "./utils"
 type StoryRenderOptions = {
   componentName: Readonly<string>
   enumsImport: DeepReadonly<string[]>
+  isDefaultExport?: boolean
   props?: DeepReadonly<Record<string, Prop>>
 }
 
 export function renderStory({
   componentName,
   enumsImport,
+  isDefaultExport,
   props = {},
 }: StoryRenderOptions) {
   const storyName = `${componentName}Story`
@@ -38,7 +40,7 @@ export function renderStory({
 `import React from "react"
 import type {Story} from "@ladle/react"
 
-import {${componentName}} from "./${componentName}"
+import ${isDefaultExport ? componentName : `{${componentName}}`} from "./${componentName}"
 ${enumsImport?.length ? `import {${enumsImport.join(", ")}} from "./${componentName}"
 ` : ''}
 export const ${storyName}: Story<{${Object.keys(props).map(p => `

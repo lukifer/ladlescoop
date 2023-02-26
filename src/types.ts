@@ -2,13 +2,15 @@ import {ArgType as LadleArgType} from "@ladle/react"
 import ts from "typescript"
 
 export type State = DeepReadonly<{
-  enumsMap: Record<string, Record<string, EnumVal>>
-  enumsImport: string[]
   componentsMap: Record<string, {
     props: Record<string, Prop>
     // definition: ts.FunctionDeclaration | null,
     isDefaultExport?: boolean
   }>
+  enumsMap: Record<string, Record<string, EnumVal>>
+  enumsImport: string[]
+  importsMap: Record<string, string>
+  propsFormat: string
 }>
 
 export type DeepReadonly<T> =

@@ -6,6 +6,7 @@ import {renderStory} from "./src/storyTemplate"
 import {
   handleEnum,
   handleFunction,
+  handleImport,
   handleInterface,
   handleType,
 } from './src/parseComponent'
@@ -18,6 +19,8 @@ import {
 
 const program = new Command()
 program.option("-o, --overwrite", "overwrite existing file")
+program.option("--propsformat", "Custom props naming format, such as '{Component}PropType'")
+// program.option("--wrap", "Custom DOM wrapping, format: 'div(className=foo),MyProvider(props={}),MockProvider(mocks=[])'")
 program.parse(process.argv)
 
 const inputFilePath = program.args[0]
@@ -29,7 +32,7 @@ if (!inputFilePath.match(/\.tsx?$/)) {
 }
 const inputDirPath = inputFilePath.replace(/^(.+)\/[^/]+$/, "$1/")
 if (!inputDirPath || inputDirPath === inputFilePath) {
-  nope("only relative paths supported: use './myFile.ts', not 'myFile.ts'")
+  nope("Only relative paths supported: use './myFile.ts', not 'myFile.ts'")
 }
 
 const sourceFile = ts.createSourceFile(
@@ -43,27 +46,32 @@ const sourceFile = ts.createSourceFile(
 let state: State = {
   enumsMap: {},
   enumsImport: [],
+  importsMap: {},
   componentsMap: {},
+  propsFormat: program.opts().propsformat || '{Component}Props',
 }
 
 sourceFile.statements.forEach(statement => {
-  console.log("before state at:", JSON.stringify(state, null, 2))
+  switch (statement.kind) {
+    case ts.SyntaxKind.EnumDeclaration:
+      if (!ts.isEnumDeclaration(statement)) return
+      return state = handleEnum(state, statement)
+
+    case ts.SyntaxKind.ImportDeclaration:
+      if (!ts.isImportDeclaration(statement)) return
+      return state = handleImport(state, statement)
+  }
+})
+
+sourceFile.statements.forEach(statement => {
   switch (statement.kind) {
     case ts.SyntaxKind.TypeAliasDeclaration:
       if (!ts.isTypeAliasDeclaration(statement)) return
       return state = handleType(state, statement)
 
-    case ts.SyntaxKind.InterfaceKeyword:
+    case ts.SyntaxKind.InterfaceDeclaration:
       if (!ts.isInterfaceDeclaration(statement)) return
       return state = handleInterface(state, statement)
-
-    case ts.SyntaxKind.EnumDeclaration:
-      if (!ts.isEnumDeclaration(statement)) return
-      return state = handleEnum(state, statement)
-
-    // case ts.SyntaxKind.ImportDeclaration:
-    //   if (!ts.isImportDeclaration(statement)) return
-    //   return state = handleImport(state, statement)
   }
 })
 
@@ -83,13 +91,14 @@ Object.keys(state.componentsMap).forEach((componentName) => {
     warn(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`)
     return
   }
-  const {props} = state.componentsMap[componentName]
+  const {props, isDefaultExport} = state.componentsMap[componentName]
   if (!props) return
   const {enumsImport} = state
   const renderedStory = renderStory({
     componentName,
     enumsImport,
     props,
+    isDefaultExport
   })
   // console.log({outputFilePath})
   // console.log({renderedStory})

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
+    "start": "ts-node index.ts",
     "ladle": "npm ladle preview",
     "test": "jest"
   },
