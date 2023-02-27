@@ -19,8 +19,8 @@ import {
 
 const program = new Command()
 program.option("-o, --overwrite", "overwrite existing file")
-program.option("--propsformat", "Custom props naming format, such as '{Component}PropType'")
-// program.option("--wrap", "Custom DOM wrapping, format: 'div(className=foo),MyProvider(props={}),MockProvider(mocks=[])'")
+program.option("--propsformat <value>", "Custom props naming format, such as '{Component}PropType'")
+program.option("--wrap <value>", "Custom DOM wrapping: 'div(className=\"foo\"|id=\"bar\"),MyProvider(props={}),MockProvider(mocks=[])'")
 program.parse(process.argv)
 
 const inputFilePath = program.args[0]
@@ -45,8 +45,9 @@ const sourceFile = ts.createSourceFile(
 
 let state: State = {
   enumsMap: {},
-  enumsImport: [],
   importsMap: {},
+  importsUsed: {},
+  inputFilePath,
   componentsMap: {},
   propsFormat: program.opts().propsformat || '{Component}Props',
 }
@@ -93,12 +94,13 @@ Object.keys(state.componentsMap).forEach((componentName) => {
   }
   const {props, isDefaultExport} = state.componentsMap[componentName]
   if (!props) return
-  const {enumsImport} = state
+  const {importsUsed} = state
   const renderedStory = renderStory({
     componentName,
-    enumsImport,
+    importsUsed,
     props,
-    isDefaultExport
+    isDefaultExport,
+    wrap: program.opts().wrap || 'div',
   })
   // console.log({outputFilePath})
   // console.log({renderedStory})

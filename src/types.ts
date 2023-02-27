@@ -4,12 +4,12 @@ import ts from "typescript"
 export type State = DeepReadonly<{
   componentsMap: Record<string, {
     props: Record<string, Prop>
-    // definition: ts.FunctionDeclaration | null,
     isDefaultExport?: boolean
   }>
   enumsMap: Record<string, Record<string, EnumVal>>
-  enumsImport: string[]
   importsMap: Record<string, string>
+  importsUsed: Record<string, string>
+  inputFilePath: string
   propsFormat: string
 }>
 
@@ -33,3 +33,8 @@ export type Prop = {
   defaultValue?: string
   argType?: ArgType
 }
+
+export type DomTree = Array<[
+  string,
+  Array<[string, string?]>?
+]>

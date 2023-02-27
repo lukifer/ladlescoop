@@ -1,10 +1,17 @@
-import {renderStory} from "../src/storyTemplate"
+import {
+  renderDomTree,
+  renderStory,
+  unpackWrap,
+} from "../src/storyTemplate"
 
 describe("renderStory", () => {
   it("matches the snapshot", () => {
     const rendered = renderStory({
       componentName: "Taco",
-      enumsImport: ["Cheese", "Salsa"],
+      importsUsed: {
+        "Cheese": "./Taco",
+        "Salsa": "./Taco",
+      },
       props: {
         toppings: {
           name: "toppings",
@@ -33,7 +40,8 @@ describe("renderStory", () => {
           type: "boolean",
           isOptional: true
         }
-      }
+      },
+      wrap: "div(className='wrap'),MyProvider",
     })
     expect(rendered).toMatchInlineSnapshot(`
 "import React from "react"
@@ -52,12 +60,15 @@ export const TacoStory: Story<{
   softShell
 }) => {
   return (
-    <div>
-      <Taco
-        toppings={toppings}
-        cheese={cheese}
-        softShell={softShell}
-      />
+    <div className={'wrap'}>
+      <MyProvider>
+        <h3>Taco</h3>
+        <Taco
+          toppings={toppings}
+          cheese={cheese}
+          softShell={softShell}
+        />
+      </MyProvider>
     </div>
   )
 }
@@ -77,6 +88,33 @@ TacoStory.argTypes = {
     }
   }
 }"
+`)
+  })
+
+  const testString = "main,div(className='foo'|id='bar'),MockProvider(mocks=[])"
+
+  it("unwraps a wrapper string into a DOM structure", () => {
+    expect(unpackWrap(testString)).toMatchObject([
+      ["main"],
+      ["div", [["className", "'foo'"], ["id", "'bar'"]]],
+      ["MockProvider", [["mocks", "[]"]]],
+    ])
+  })
+
+  it("renders a DOM tree", () => {
+    const domTree = [...unpackWrap(testString)]
+    domTree.push(['Taco'])
+    const rendered = renderDomTree(domTree)
+    expect(rendered).toMatchInlineSnapshot(`
+"  <main>
+    <div className={'foo'} id={'bar'}>
+      <MockProvider mocks={[]}>
+        <h3>Taco</h3>
+        <Taco
+        />
+      </MockProvider>
+    </div>
+  </main>"
 `)
   })
 })

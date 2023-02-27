@@ -12,8 +12,9 @@ const {factory} = ts
 
 const emptyState: State = {
   enumsMap: {},
-  enumsImport: [],
   importsMap: {},
+  importsUsed: {},
+  inputFilePath: "",
   componentsMap: {},
   propsFormat: "{Component}Props",
 }

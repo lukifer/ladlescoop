@@ -23,6 +23,7 @@ export const ExampleInputStory: Story<{
 }) => {
   return (
     <div>
+      <h3>ExampleInput</h3>
       <ExampleInput
         allowNegative={allowNegative}
         fontSize={fontSize}

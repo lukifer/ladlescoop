@@ -223,7 +223,7 @@ export function mutableAddPropBinding(
         if (!ts.isPropertyAccessExpression(token)) return
         const enumName = getName(token)
         if (draft.enumsMap[enumName]) {
-          draft.enumsImport.push(enumName)
+          draft.importsUsed[enumName] = `./${fnName}`
         }
         return set(`${enumName}.${getName(token, 1)}`)
     }

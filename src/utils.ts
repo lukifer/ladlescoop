@@ -18,9 +18,13 @@ export function fileExists(filePath: string) {
   return exists
 }
 
-export function indent(str: string[], ct = 1) {
-  const indent = [...new Array(ct)].fill("  ").join("")
-  return str.map(x => x.split("\n").join(`\n${indent}`))
+export function indent(str: string, ct = 1) {
+  const spaces = [...new Array(ct)].fill("  ").join("")
+  return `${spaces}${str}`
+}
+
+export function indentLines(str: string[], ct = 1) {
+  return str.map(x => x.split("\n").map(x => indent(x, ct)).join(`\n`))
 }
 
 export function warn(msg: string) {

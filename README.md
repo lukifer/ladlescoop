@@ -25,7 +25,6 @@ npm test -- -u # update snapshots
 ##### TODO:
 - Parsing constants and pseudo-enum object constants
 - Reading external imports for type definitions
-- Templates or component wrappers (for providers, query mocking, etc)
 - Parsing plain JS in addition to TypeScript
 - Multiple files and directories on CLI
 - Settings for control prefences (`select` vs `radio`, etc)
