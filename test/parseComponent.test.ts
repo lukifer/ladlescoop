@@ -1,6 +1,7 @@
 import * as ts from "typescript"
 
 import {
+  extractObjectEnumValues,
   getFnFromProps,
   handleEnum,
   handleInterface,
@@ -134,5 +135,23 @@ describe("parseComponent", () => {
   }
 }"
 `)
+  })
+
+  it("extracts values from an object literal", () => {
+    const objectLiteral = factory.createObjectLiteralExpression(
+      [
+        ["one", "1"],
+        ["two", "2"]
+      ].map(tuple => factory.createPropertyAssignment(
+          factory.createIdentifier(tuple[0]),
+          factory.createStringLiteral(tuple[1]),
+      ))
+    )
+
+    const extractedValues = extractObjectEnumValues(objectLiteral)
+    expect(extractedValues).toMatchObject({
+      "one": 1,
+      "two": 2,
+    })
   })
 })

@@ -6,6 +6,11 @@ export enum ExportedFontSize {
   medium = "1rem",
   large = "1.2rem",
 }
+export enum ExportedButIgnored {
+  small = "0.8rem",
+  medium = "1rem",
+  large = "1.2rem",
+}
 export const EXPORTED_MAX_VALUE = 1000
 
 // Utility funcs

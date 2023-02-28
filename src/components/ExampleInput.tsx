@@ -1,6 +1,10 @@
-import React, {useState} from 'react'
+import React, {useState} from "react"
 
-import {ExportedFontSize, EXPORTED_MAX_VALUE} from '../utils'
+import {
+  ExportedFontSize,
+  ExportedButIgnored as _ExportedButIgnored,
+  EXPORTED_MAX_VALUE as _EXPORTED_MAX_VALUE,
+} from "../utils"
 
 export enum FontSizeNoValues {
   small,
@@ -12,40 +16,43 @@ export enum FontSize {
   medium = "1rem",
   large = "1.2rem",
 }
-export const FontSizeObj = {
-  small: "0.8rem",
-  medium: "1rem",
-  large: "1.2rem",
+export const FontWeightObj = {
+  normal: "400",
+  bold: "700",
 } as const
+
 export const MAX_VALUE = 1000
 
-type ExampleInputProps = {
+export type ExampleInputProps = {
   allowNegative?: boolean
   fontSize?: FontSize
-  // fontSize?: typeof FontSizeObj[keyof typeof FontSizeObj]
+  fontSizeLabel?: ExportedFontSize
+  // fontWeight?: typeof FontSizeObj[keyof typeof FontSizeObj]
+  fontWeight?: string
   labelString: string | null
   minValue?: -100 | 0 | 100
   maxValue?: number
-  roundToNearest?: 'none' | 'ten' | 'hundred'
+  roundToNearest?: "none" | "ten" | "hundred"
   startingValue?: number | string
 }
 
 export function ExampleInput({
   allowNegative = true,
   fontSize = FontSize.medium,
-  // fontSize = FontSizeObj.small,
+  fontSizeLabel = ExportedFontSize.medium,
+  fontWeight = FontWeightObj.normal,
   labelString,
   minValue,
   maxValue = MAX_VALUE,
-  roundToNearest = 'none',
+  roundToNearest = "none",
   startingValue = 0,
 }: ExampleInputProps) {
   const [value, setValue] = useState<string>(`${startingValue}`)
   const onBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     let updatedValue = parseInt(e.target.value)
     if (!allowNegative) updatedValue = Math.max(0, updatedValue)
-    if (roundToNearest !== 'none') { // not actual rounding, don't @ me :P
-      updatedValue -= (updatedValue % (roundToNearest === 'ten' ? 10 : 100))
+    if (roundToNearest !== "none") { // not actual rounding, don't @ me :P
+      updatedValue -= (updatedValue % (roundToNearest === "ten" ? 10 : 100))
     }
     if (maxValue !== undefined) updatedValue = Math.min(updatedValue, maxValue)
     if (minValue !== undefined) updatedValue = Math.max(updatedValue, minValue)
@@ -54,13 +61,15 @@ export function ExampleInput({
   return (
     <div>
       <label>
-        <span>{labelString || 'Default Label'}</span>
+        <span style={{fontSize: fontSizeLabel}}>
+          {labelString || "Default Label"}
+        </span>
         <input
           type="text"
           defaultValue={startingValue}
           onBlur={onBlur}
           onChange={({target}) => setValue(target.value)}
-          style={{fontSize}}
+          style={{fontSize, fontWeight}}
           value={value}
         />
       </label>

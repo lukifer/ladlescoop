@@ -1,12 +1,15 @@
-import * as ts from "typescript"
+import ts from "typescript"
+import {readFileSync} from "fs"
+
+import {fileExists} from "./utils"
 
 export function getChildrenOfKind(
   el: ts.Node,
   kinds: ts.SyntaxKind[]
 ) {
   let children: Array<ts.Node> = []
-  el.forEachChild(child => {
-    if (kinds.includes(child.kind)) children.push(child)
+  el?.forEachChild(child => {
+    if (kinds.includes(child?.kind)) children.push(child)
   })
   return children
 }
@@ -44,5 +47,28 @@ export function traverse(el: ts.Node, path: Array<[ts.SyntaxKind, number?]>): ts
 }
 
 export function isExported(el: ts.Node) {
-  return !!(el.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword))
+  return !!(el.modifiers?.some(m => m?.kind === ts.SyntaxKind.ExportKeyword))
+}
+
+const sourceFileCache: Record<string, ts.SourceFile> = {}
+
+export function getSourceFile(filePath: string): ts.SourceFile | null {
+  if (!sourceFileCache[filePath]) {
+    if (!/\.tsx?$/.test(filePath)) {
+      if (fileExists(`${filePath}.tsx`))
+        return getSourceFile(`${filePath}.tsx`)
+      else if (fileExists(`${filePath}.ts`))
+        return getSourceFile(`${filePath}.ts`)
+      else
+        return null
+    }
+    sourceFileCache[filePath] = ts.createSourceFile(
+      filePath,
+      readFileSync(filePath).toString(),
+      ts.ScriptTarget.ESNext,
+      true, // setParentNodes
+      ts.ScriptKind.TSX
+    )
+  }
+  return sourceFileCache[filePath]
 }

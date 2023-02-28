@@ -2,19 +2,24 @@ import React from "react"
 import type {Story} from "@ladle/react"
 
 import {ExampleInput} from "./ExampleInput"
-import {FontSize} from "./ExampleInput"
+import {FontSize, FontWeightObj} from "./ExampleInput"
+import {ExportedFontSize} from "../utils"
 
 export const ExampleInputStory: Story<{
   allowNegative?: boolean
   fontSize?: FontSize
+  fontSizeLabel?: ExportedFontSize
+  fontWeight?: string
   labelString: string | null
   minValue?: -100 | 0 | 100
   maxValue?: number
-  roundToNearest?: 'none' | 'ten' | 'hundred'
+  roundToNearest?: "none" | "ten" | "hundred"
   startingValue?: number | string
 }> = ({
   allowNegative,
   fontSize,
+  fontSizeLabel,
+  fontWeight,
   labelString,
   minValue,
   maxValue,
@@ -27,6 +32,8 @@ export const ExampleInputStory: Story<{
       <ExampleInput
         allowNegative={allowNegative}
         fontSize={fontSize}
+        fontSizeLabel={fontSizeLabel}
+        fontWeight={fontWeight}
         labelString={labelString}
         minValue={minValue}
         maxValue={maxValue}
@@ -40,8 +47,10 @@ export const ExampleInputStory: Story<{
 ExampleInputStory.args = {
   allowNegative: true,
   fontSize: FontSize.medium,
+  fontSizeLabel: ExportedFontSize.medium,
+  fontWeight: FontWeightObj.normal,
   labelString: '',
-  roundToNearest: 'none',
+  roundToNearest: "none",
   startingValue: 0,
 }
 
@@ -50,6 +59,18 @@ ExampleInputStory.argTypes = {
     control: {
       type: "select",
       options: [FontSize.small, FontSize.medium, FontSize.large],
+    }
+  },
+  fontSizeLabel: {
+    control: {
+      type: "select",
+      options: [ExportedFontSize.small, ExportedFontSize.medium, ExportedFontSize.large],
+    }
+  },
+  fontWeight: {
+    control: {
+      type: "radio",
+      options: [FontWeightObj.normal, FontWeightObj.bold],
     }
   },
   minValue: {
@@ -61,7 +82,7 @@ ExampleInputStory.argTypes = {
   roundToNearest: {
     control: {
       type: "select",
-      options: ['none', 'ten', 'hundred'],
+      options: ["none", "ten", "hundred"],
     }
   }
 }

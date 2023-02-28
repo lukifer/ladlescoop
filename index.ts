@@ -1,6 +1,6 @@
 import {Command} from "commander"
 import * as ts from "typescript"
-import {readFileSync, writeFileSync} from "fs"
+import {writeFileSync} from "fs"
 
 import {renderStory} from "./src/storyTemplate"
 import {
@@ -8,8 +8,10 @@ import {
   handleFunction,
   handleImport,
   handleInterface,
+  handleObjectEnum,
   handleType,
 } from './src/parseComponent'
+import {getSourceFile} from './src/tsnode'
 import {State} from './src/types'
 import {
   fileExists,
@@ -35,14 +37,6 @@ if (!inputDirPath || inputDirPath === inputFilePath) {
   nope("Only relative paths supported: use './myFile.ts', not 'myFile.ts'")
 }
 
-const sourceFile = ts.createSourceFile(
-  inputFilePath,
-  readFileSync(inputFilePath).toString(),
-  ts.ScriptTarget.ESNext,
-  true, // setParentNodes
-  ts.ScriptKind.TSX
-)
-
 let state: State = {
   enumsMap: {},
   importsMap: {},
@@ -52,11 +46,18 @@ let state: State = {
   propsFormat: program.opts().propsformat || '{Component}Props',
 }
 
+const sourceFile: ts.SourceFile = getSourceFile(inputFilePath)
+if (!sourceFile) nope(`An error occurred reading "${inputFilePath}"`)
+
 sourceFile.statements.forEach(statement => {
   switch (statement.kind) {
     case ts.SyntaxKind.EnumDeclaration:
       if (!ts.isEnumDeclaration(statement)) return
       return state = handleEnum(state, statement)
+
+    case ts.SyntaxKind.VariableStatement:
+      if (!ts.isVariableStatement(statement)) return
+      return state = handleObjectEnum(state, statement)
 
     case ts.SyntaxKind.ImportDeclaration:
       if (!ts.isImportDeclaration(statement)) return

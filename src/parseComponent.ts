@@ -1,3 +1,4 @@
+import path from "path"
 import ts from "typescript"
 import produce, {Draft} from "immer"
 
@@ -5,10 +6,12 @@ import {
   getChildrenOfKind,
   getFirstOfKind,
   getName,
+  getSourceFile,
   isExported,
   traverse,
 } from "./tsnode"
 import {
+  ArgType,
   DefaultValue,
   EnumVal,
   Prop,
@@ -87,30 +90,22 @@ export function mutableAddProp(
     case ts.SyntaxKind.UnionType:
       if (!ts.isUnionTypeNode(typeNode)) return
       if (typeNode.types.every(ts.isLiteralTypeNode)) {
+        const enumKeys = typeNode.types.map(t => t.getText())
         return set({
           kind,
-          type: typeNode.types.map(t => t.getText()).join(" | "),
-          argType: {
-            control: {
-              options: typeNode.types.map(t => t.getText()),
-              type: typeNode.types.length > 2 ? "select" : "radio",
-            },
-          }
+          type: enumKeys.join(" | "),
+          argType: createArgType(enumKeys)
         })
       }
       else {
         // If union includes number or a string, we create those controls (in that order)
         const numType = typeNode.types.find(t => t.kind === ts.SyntaxKind.NumberKeyword)
         const strType = typeNode.types.find(t => t.kind === ts.SyntaxKind.StringKeyword)
-        if (numType) {
+        if (numType || strType) {
           return set({
-            kind: ts.SyntaxKind.NumberKeyword,
-            type: typeNode.getText(),
-          })
-        }
-        else if (strType) {
-          return set({
-            kind: ts.SyntaxKind.StringKeyword,
+            kind: numType
+              ? ts.SyntaxKind.NumberKeyword
+              : ts.SyntaxKind.StringKeyword,
             type: typeNode.getText(),
           })
         }
@@ -127,13 +122,30 @@ export function mutableAddProp(
       const enumName = typeNode.getText()
       const propSet = {kind, type: enumName}
       if (draft.enumsMap[enumName]) {
+        const enumKeys = Object.keys(draft.enumsMap[enumName])
         return set({
           ...propSet,
-          argType: {
-            control: {
-              options: Object.keys(draft.enumsMap[enumName]).map(e => `${enumName}.${e}`),
-              type: "select", // TODO: radio, inline-radio
-            },
+          argType: createArgType(enumKeys, enumName)
+        })
+      }
+      else if (draft.importsMap[enumName]) {
+        const fullImportPath = path.resolve(path.dirname(draft.inputFilePath), draft.importsMap[enumName]);
+        const sourceFile = getSourceFile(fullImportPath)
+        sourceFile?.statements.forEach(statement => {
+          switch (statement.kind) {
+            case ts.SyntaxKind.VariableStatement:
+              // TODO
+              //console.log('mutableAddProp / TypeReference / VariableStatement '+statement.getText())
+              break
+            case ts.SyntaxKind.EnumDeclaration:
+              const enumName = getName(statement)
+              if (!draft.enumsMap[enumName]) {
+                const enumMembers = getChildrenOfKind(statement, [
+                  ts.SyntaxKind.EnumMember,
+                ]).filter(ts.isEnumMember)
+                draft.enumsMap[enumName] = extractEnumValues(enumMembers)
+              }
+              break
           }
         })
       }
@@ -148,21 +160,91 @@ export function handleEnum(
   if (!isExported(enumDec)) return state
   return produce(state, draft => {
     const enumMembers = getChildrenOfKind(enumDec, [ts.SyntaxKind.EnumMember]).filter(ts.isEnumMember)
-    draft.enumsMap[getName(enumDec)] = enumMembers.reduce<Record<string, EnumVal>>((rec, member) => {
-      const memberName = ts.isIdentifier(member.name) ? member.name.escapedText.toString() : ""
-      if (!memberName) return rec
-
-      const literal: ts.Node | undefined = getFirstOfKind(member, [
-        ts.SyntaxKind.NumericLiteral,
-        ts.SyntaxKind.StringLiteral,
-      ])
-      const valText = literal && (
-        ts.isNumericLiteral(literal) || ts.isStringLiteral(literal)
-      ) && literal.text
-      return {...rec, [memberName]: valText}
-    }, {})
+    const enumName = getName(enumDec)
+    draft.enumsMap[enumName] = extractEnumValues(enumMembers)
     return draft
   })
+}
+
+export function handleObjectEnum(
+  state: State,
+  maybeObjectEnum: ts.VariableStatement,
+): State {
+  if (!isExported(maybeObjectEnum)) return state
+
+  const declarationList = getFirstOfKind(maybeObjectEnum, ts.SyntaxKind.VariableDeclarationList)
+  if (!ts.isVariableDeclarationList(declarationList))
+    return state
+  const varDeclaration = getFirstOfKind(declarationList, ts.SyntaxKind.VariableDeclaration)
+  if (!ts.isVariableDeclaration(varDeclaration))
+    return state
+
+  let objectLiteral = getFirstOfKind(varDeclaration, [
+    ts.SyntaxKind.AsExpression,
+    ts.SyntaxKind.ObjectLiteralExpression,
+  ])
+  if (!objectLiteral) return state
+  if (!ts.isObjectLiteralExpression(objectLiteral)) { // TODO: validate "as const"?
+    objectLiteral = getFirstOfKind(objectLiteral, ts.SyntaxKind.ObjectLiteralExpression)
+  }
+  if (!objectLiteral || !ts.isObjectLiteralExpression(objectLiteral))
+    return state
+
+  const objectKVs = extractObjectEnumValues(objectLiteral)
+  if (Object.keys(objectKVs).length < 2)
+    return state
+
+  return produce(state, draft => {
+    const objName = getName(varDeclaration)
+    draft.enumsMap[objName] = objectKVs
+    return draft
+  })
+}
+
+export function extractEnumValues(enumMembers: ts.EnumMember[]) {
+  return enumMembers.reduce<Record<string, EnumVal>>((rec, member) => {
+    const memberName = ts.isIdentifier(member.name)
+      ? member.name.escapedText.toString()
+      : ""
+    if (!memberName) return rec
+
+    const literal: ts.Node | undefined = getFirstOfKind(member, [
+      ts.SyntaxKind.NumericLiteral,
+      ts.SyntaxKind.StringLiteral,
+    ])
+    const valText = literal && (
+      ts.isNumericLiteral(literal) || ts.isStringLiteral(literal)
+    ) && literal.text
+    return {...rec, [memberName]: valText}
+  }, {})
+}
+
+export function extractObjectEnumValues(
+  objectLiteral: ts.ObjectLiteralExpression,
+) {
+  const objectAssignments = getChildrenOfKind(objectLiteral, [
+    ts.SyntaxKind.PropertyAssignment,
+  ]).filter(ts.isPropertyAssignment)
+
+  return objectAssignments.reduce<Record<string, string>>((kvs, oa) => {
+    const key = getName(oa)
+    const val = getFirstOfKind(oa, [
+      ts.SyntaxKind.NullKeyword,
+      ts.SyntaxKind.NumericLiteral,
+      ts.SyntaxKind.StringLiteral,
+    ])
+    if (!val) return kvs
+
+    // TODO FIXME: this throws undefined on the extractObjectEnumValues test
+    // let text = val.getText()
+    let text = (val as any).text
+    try {
+      if (typeof text === "string")
+        text = JSON.parse(text)
+    } catch(e) {}
+
+    return ({...kvs, [key]: text})
+  }, {})
 }
 
 export function handleFunction(
@@ -223,10 +305,28 @@ export function mutableAddPropBinding(
         if (!ts.isPropertyAccessExpression(token)) return
         const enumName = getName(token)
         if (draft.enumsMap[enumName]) {
-          draft.importsUsed[enumName] = `./${fnName}`
+          if (!draft.importsUsed[enumName]) {
+            const path = draft.importsMap[enumName] || `./${fnName}`
+            draft.importsUsed[enumName] = path
+          }
+          if (!draft.componentsMap[fnName].props[propName].argType) {
+            const enumKeys = Object.keys(draft.enumsMap[enumName])
+            draft.componentsMap[fnName].props[propName].argType = createArgType(enumKeys, enumName)
+          }
         }
         return set(`${enumName}.${getName(token, 1)}`)
     }
+  })
+}
+
+export function createArgType(enumKeys: string[], prefix?: string): ArgType {
+  return ({
+    control: {
+      options: prefix
+        ? enumKeys.map(k => `${prefix}.${k}`)
+        : enumKeys,
+      type: enumKeys.length > 2 ? "select" : "radio"
+    },
   })
 }
 
@@ -236,11 +336,11 @@ export function handleImport(state: State, importDeclaration: ts.ImportDeclarati
     [ts.SyntaxKind.NamedImports, 0],
     [ts.SyntaxKind.ImportSpecifier],
   ])
-  const path = getFirstOfKind(importDeclaration, ts.SyntaxKind.StringLiteral)
+  const importPath = getFirstOfKind(importDeclaration, ts.SyntaxKind.StringLiteral)
   return produce(state, draft => {
     namedImports?.forEach(namedImport => {
       const importName = getName(namedImport)
-      draft.importsMap[importName] = path.getText()
+      draft.importsMap[importName] = importPath.getText().slice(1, -1)
     })
     return draft
   })
