@@ -46,6 +46,18 @@ export function traverse(el: ts.Node, path: Array<[ts.SyntaxKind, number?]>): ts
   return nodes
 }
 
+export function findNodesOfKind(originNode: ts.Node, kinds: ts.SyntaxKind[]): ts.Node[] {
+  const foundNodes: ts.Node[] = [];
+  function visit(node: ts.Node) {
+    if (kinds.includes(node.kind)) {
+      foundNodes.push(node);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(originNode);
+  return foundNodes;
+}
+
 export function isExported(el: ts.Node) {
   return !!(el.modifiers?.some(m => m?.kind === ts.SyntaxKind.ExportKeyword))
 }

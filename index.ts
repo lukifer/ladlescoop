@@ -32,84 +32,94 @@ if (!inputFilePath) {
 if (!inputFilePath.match(/\.tsx?$/)) {
   nope("Only TypeScript currently supported")
 }
-const inputDirPath = inputFilePath.replace(/^(.+)\/[^/]+$/, "$1/")
-if (!inputDirPath || inputDirPath === inputFilePath) {
-  nope("Only relative paths supported: use './myFile.ts', not 'myFile.ts'")
-}
 
-let state: State = {
+export const emptyState: State = {
+  componentsMap: {},
   enumsMap: {},
   importsMap: {},
   importsUsed: {},
   inputFilePath,
-  componentsMap: {},
   propsFormat: program.opts().propsformat || '{Component}Props',
 }
 
-const sourceFile: ts.SourceFile = getSourceFile(inputFilePath)
-if (!sourceFile) nope(`An error occurred reading "${inputFilePath}"`)
-
-sourceFile.statements.forEach(statement => {
-  switch (statement.kind) {
-    case ts.SyntaxKind.EnumDeclaration:
-      if (!ts.isEnumDeclaration(statement)) return
-      return state = handleEnum(state, statement)
-
-    case ts.SyntaxKind.VariableStatement:
-      if (!ts.isVariableStatement(statement)) return
-      return state = handleObjectEnum(state, statement)
-
-    case ts.SyntaxKind.ImportDeclaration:
-      if (!ts.isImportDeclaration(statement)) return
-      return state = handleImport(state, statement)
-  }
-})
-
-sourceFile.statements.forEach(statement => {
-  switch (statement.kind) {
-    case ts.SyntaxKind.TypeAliasDeclaration:
-      if (!ts.isTypeAliasDeclaration(statement)) return
-      return state = handleType(state, statement)
-
-    case ts.SyntaxKind.InterfaceDeclaration:
-      if (!ts.isInterfaceDeclaration(statement)) return
-      return state = handleInterface(state, statement)
-  }
-})
-
-sourceFile.statements.forEach(fn => {
-  switch (fn.kind) {
-    case ts.SyntaxKind.FunctionDeclaration:
-      if (!ts.isFunctionDeclaration(fn)) return
-      return state = handleFunction(state, fn)
-  }
-})
-
-// Write the story template for each component to files
 const filesWritten = []
-Object.keys(state.componentsMap).forEach((componentName) => {
-  const outputFilePath = `${inputDirPath}${componentName}.stories.tsx`
-  if (!program.opts().overwrite && fileExists(outputFilePath)) {
-    warn(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`)
+
+function createStoryForFile(filePath: string) {
+  const dirPath = filePath.replace(/^(.+)\/[^/]+$/, "$1/")
+  if (!dirPath || dirPath === filePath) {
+    warn("Only relative paths supported: use './myFile.ts', not 'myFile.ts'")
     return
   }
-  const {props, isDefaultExport} = state.componentsMap[componentName]
-  if (!props) return
-  const {importsUsed} = state
-  const renderedStory = renderStory({
-    componentName,
-    importsUsed,
-    props,
-    isDefaultExport,
-    wrap: program.opts().wrap || 'div',
+
+  const sourceFile: ts.SourceFile = getSourceFile(filePath)
+  if (!sourceFile) nope(`An error occurred reading "${filePath}"`)
+
+  let state = {...emptyState}
+
+  sourceFile.statements.forEach(statement => {
+    switch (statement.kind) {
+      case ts.SyntaxKind.EnumDeclaration:
+        if (!ts.isEnumDeclaration(statement)) return
+        return state = handleEnum(state, statement)
+
+      case ts.SyntaxKind.VariableStatement:
+        if (!ts.isVariableStatement(statement)) return
+        return state = handleObjectEnum(state, statement)
+
+      case ts.SyntaxKind.ImportDeclaration:
+        if (!ts.isImportDeclaration(statement)) return
+        return state = handleImport(state, statement)
+    }
   })
-  // console.log({outputFilePath})
-  // console.log({renderedStory})
-  try {
-    writeFileSync(outputFilePath, renderedStory)
-    filesWritten.push(outputFilePath)
-  } catch(e) {warn(`Something went wrong writing ${outputFilePath}: ${e}`)}
-})
+
+  sourceFile.statements.forEach(statement => {
+    switch (statement.kind) {
+      case ts.SyntaxKind.TypeAliasDeclaration:
+        if (!ts.isTypeAliasDeclaration(statement)) return
+        return state = handleType(state, statement)
+
+      case ts.SyntaxKind.InterfaceDeclaration:
+        if (!ts.isInterfaceDeclaration(statement)) return
+        return state = handleInterface(state, statement)
+    }
+  })
+
+  sourceFile.statements.forEach(fn => {
+    switch (fn.kind) {
+      case ts.SyntaxKind.FunctionDeclaration:
+        if (!ts.isFunctionDeclaration(fn)) return
+        return state = handleFunction(state, fn)
+    }
+  })
+
+  Object.keys(state.componentsMap).forEach((componentName) => {
+    const outputFilePath = `${dirPath}${componentName}.stories.tsx`
+    if (!program.opts().overwrite && fileExists(outputFilePath)) {
+      warn(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`)
+      return
+    }
+    const {props, isDefaultExport} = state.componentsMap[componentName]
+    if (!props) return
+    const {importsUsed} = state
+    const renderedStory = renderStory({
+      componentName,
+      importsUsed,
+      props,
+      isDefaultExport,
+      wrap: program.opts().wrap || 'div',
+    })
+    // console.log({outputFilePath})
+    // console.log({renderedStory})
+    try {
+      writeFileSync(outputFilePath, renderedStory)
+      filesWritten.push(outputFilePath)
+    } catch(e) {
+      warn(`Something went wrong writing ${outputFilePath}: ${e}`
+    )}
+  })
+}
+
+createStoryForFile(inputFilePath)
 
 if (filesWritten.length) {
   const plur = filesWritten.length > 1 ? 's' : ''

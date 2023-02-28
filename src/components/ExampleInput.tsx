@@ -2,9 +2,10 @@ import React, {useState} from "react"
 
 import {
   ExportedFontSize,
+  ExportedFontWeightObj,
   ExportedButIgnored as _ExportedButIgnored,
   EXPORTED_MAX_VALUE as _EXPORTED_MAX_VALUE,
-} from "../utils"
+} from "../types"
 
 export enum FontSizeNoValues {
   small,
@@ -29,6 +30,7 @@ export type ExampleInputProps = {
   fontSizeLabel?: ExportedFontSize
   // fontWeight?: typeof FontSizeObj[keyof typeof FontSizeObj]
   fontWeight?: string
+  fontWeightLabel?: string
   labelString: string | null
   minValue?: -100 | 0 | 100
   maxValue?: number
@@ -41,6 +43,7 @@ export function ExampleInput({
   fontSize = FontSize.medium,
   fontSizeLabel = ExportedFontSize.medium,
   fontWeight = FontWeightObj.normal,
+  fontWeightLabel = ExportedFontWeightObj.normal,
   labelString,
   minValue,
   maxValue = MAX_VALUE,
@@ -61,7 +64,7 @@ export function ExampleInput({
   return (
     <div>
       <label>
-        <span style={{fontSize: fontSizeLabel}}>
+        <span style={{fontSize: fontSizeLabel, fontWeight: fontWeightLabel}}>
           {labelString || "Default Label"}
         </span>
         <input

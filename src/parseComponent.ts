@@ -3,6 +3,7 @@ import ts from "typescript"
 import produce, {Draft} from "immer"
 
 import {
+  findNodesOfKind,
   getChildrenOfKind,
   getFirstOfKind,
   getName,
@@ -134,16 +135,19 @@ export function mutableAddProp(
         sourceFile?.statements.forEach(statement => {
           switch (statement.kind) {
             case ts.SyntaxKind.VariableStatement:
-              // TODO
-              //console.log('mutableAddProp / TypeReference / VariableStatement '+statement.getText())
+              const objectEnum = getObjectEnumLiteral(statement)
+              if (!objectEnum) break
+
+              const [objName, objectLiteral] = objectEnum
+              const objectKVs = extractObjectEnumValues(objectLiteral)
+              if (Object.keys(objectKVs).length >= 2) {
+                draft.enumsMap[objName] = objectKVs
+              }
               break
             case ts.SyntaxKind.EnumDeclaration:
               const enumName = getName(statement)
-              if (!draft.enumsMap[enumName]) {
-                const enumMembers = getChildrenOfKind(statement, [
-                  ts.SyntaxKind.EnumMember,
-                ]).filter(ts.isEnumMember)
-                draft.enumsMap[enumName] = extractEnumValues(enumMembers)
+              if (!draft.enumsMap[enumName] && ts.isEnumDeclaration(statement)) {
+                draft.enumsMap[enumName] = extractEnumValues(statement)
               }
               break
           }
@@ -159,9 +163,8 @@ export function handleEnum(
 ): State {
   if (!isExported(enumDec)) return state
   return produce(state, draft => {
-    const enumMembers = getChildrenOfKind(enumDec, [ts.SyntaxKind.EnumMember]).filter(ts.isEnumMember)
     const enumName = getName(enumDec)
-    draft.enumsMap[enumName] = extractEnumValues(enumMembers)
+    draft.enumsMap[enumName] = extractEnumValues(enumDec)
     return draft
   })
 }
@@ -172,36 +175,46 @@ export function handleObjectEnum(
 ): State {
   if (!isExported(maybeObjectEnum)) return state
 
-  const declarationList = getFirstOfKind(maybeObjectEnum, ts.SyntaxKind.VariableDeclarationList)
-  if (!ts.isVariableDeclarationList(declarationList))
-    return state
-  const varDeclaration = getFirstOfKind(declarationList, ts.SyntaxKind.VariableDeclaration)
-  if (!ts.isVariableDeclaration(varDeclaration))
-    return state
+  const objectEnum = getObjectEnumLiteral(maybeObjectEnum)
+  if (!objectEnum) return state
 
-  let objectLiteral = getFirstOfKind(varDeclaration, [
-    ts.SyntaxKind.AsExpression,
-    ts.SyntaxKind.ObjectLiteralExpression,
-  ])
-  if (!objectLiteral) return state
-  if (!ts.isObjectLiteralExpression(objectLiteral)) { // TODO: validate "as const"?
-    objectLiteral = getFirstOfKind(objectLiteral, ts.SyntaxKind.ObjectLiteralExpression)
-  }
-  if (!objectLiteral || !ts.isObjectLiteralExpression(objectLiteral))
-    return state
-
+  const [objName, objectLiteral] = objectEnum
   const objectKVs = extractObjectEnumValues(objectLiteral)
   if (Object.keys(objectKVs).length < 2)
     return state
 
   return produce(state, draft => {
-    const objName = getName(varDeclaration)
     draft.enumsMap[objName] = objectKVs
     return draft
   })
 }
 
-export function extractEnumValues(enumMembers: ts.EnumMember[]) {
+export function getObjectEnumLiteral(
+  maybeObjectEnum: ts.Node
+): [string, ts.ObjectLiteralExpression] | null {
+  const declarationList = getFirstOfKind(maybeObjectEnum, ts.SyntaxKind.VariableDeclarationList)
+  if (!ts.isVariableDeclarationList(declarationList))
+    return null
+  const varDeclaration = getFirstOfKind(declarationList, ts.SyntaxKind.VariableDeclaration)
+  if (!ts.isVariableDeclaration(varDeclaration))
+    return null
+
+  let objectLiteral = getFirstOfKind(varDeclaration, [
+    ts.SyntaxKind.AsExpression,
+    ts.SyntaxKind.ObjectLiteralExpression,
+  ])
+  if (!objectLiteral) return null
+  if (!ts.isObjectLiteralExpression(objectLiteral)) { // TODO: validate "as const"?
+    objectLiteral = getFirstOfKind(objectLiteral, ts.SyntaxKind.ObjectLiteralExpression)
+  }
+  if (!objectLiteral || !ts.isObjectLiteralExpression(objectLiteral))
+    return null
+
+  return [getName(varDeclaration), objectLiteral]
+}
+
+export function extractEnumValues(enumDec: ts.EnumDeclaration) {
+  const enumMembers = getChildrenOfKind(enumDec, [ts.SyntaxKind.EnumMember]).filter(ts.isEnumMember)
   return enumMembers.reduce<Record<string, EnumVal>>((rec, member) => {
     const memberName = ts.isIdentifier(member.name)
       ? member.name.escapedText.toString()
@@ -237,6 +250,7 @@ export function extractObjectEnumValues(
 
     // TODO FIXME: this throws undefined on the extractObjectEnumValues test
     // let text = val.getText()
+    // let text = getName(val)
     let text = (val as any).text
     try {
       if (typeof text === "string")
@@ -322,11 +336,11 @@ export function mutableAddPropBinding(
 export function createArgType(enumKeys: string[], prefix?: string): ArgType {
   return ({
     control: {
-      options: prefix
-        ? enumKeys.map(k => `${prefix}.${k}`)
-        : enumKeys,
       type: enumKeys.length > 2 ? "select" : "radio"
     },
+    options: prefix
+      ? enumKeys.map(k => `${prefix}.${k}`)
+      : enumKeys,
   })
 }
 

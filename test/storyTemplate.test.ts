@@ -18,10 +18,8 @@ describe("renderStory", () => {
           type: "string[]",
           isOptional: false,
           argType: {
-            control: {
-              type: "select",
-              options: ["'Tomatoes'", "'Onions'", "'Sour Cream'"],
-            },
+            control: {type: "select"},
+            options: ["'Tomatoes'", "'Onions'", "'Sour Cream'"],
           },
         },
         cheese: {
@@ -29,10 +27,8 @@ describe("renderStory", () => {
           type: "Cheese",
           isOptional: false,
           argType: {
-            control: {
-              type: "radio",
-              options: ["Cheese.None", "Cheese.ThreeCheeseBlend"],
-            },
+            control: {type: "radio"},
+            options: ["Cheese.None", "Cheese.ThreeCheeseBlend"],
           },
         },
         softShell: {
@@ -78,14 +74,21 @@ TacoStory.argTypes = {
   toppings: {
     control: {
       type: "select",
-      options: ['Tomatoes', 'Onions', 'Sour Cream'],
-    }
+    },
+    options: [
+      'Tomatoes',
+      'Onions',
+      'Sour Cream'
+    ],
   },
   cheese: {
     control: {
       type: "radio",
-      options: [Cheese.None, Cheese.ThreeCheeseBlend],
-    }
+    },
+    options: [
+      Cheese.None,
+      Cheese.ThreeCheeseBlend
+    ],
   }
 }"
 `)

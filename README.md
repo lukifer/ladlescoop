@@ -24,11 +24,10 @@ npm test -- -u # update snapshots
 ```
 
 ##### TODO:
-- Parsing constants and pseudo-enum object constants
+- Indexed access of pseudo-enum object constants
 - Parsing plain JS in addition to TypeScript
 - Multiple files and directories on CLI
 - Settings for control prefences (`select` vs `radio`, etc)
-- Array types and other nested props
 - More unit test coverage
 
 ##### TODONT:

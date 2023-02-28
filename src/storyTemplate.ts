@@ -79,8 +79,10 @@ ${indentLines(Object.entries<DeepReadonly<ArgType>>(argTypes).map(([key, argType
 `${key}: {
   control: {
     type: "${argType.control.type}",
-    options: [${argType.control.options.join(", ")}],
-  }
+  },
+  options: [
+${indentLines([...argType.options], 2).join(",\n")}
+  ],
 }`)).join(",\n")}
 }`
   )
