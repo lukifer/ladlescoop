@@ -2,14 +2,18 @@
   "name": "ladlescoop",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "src/index.ts",
+  "bin": {
+    "ladlescoop": "./bin/ladlescoop"
+  },
   "scripts": {
     "start": "ts-node index.ts",
-    "ladle": "npm ladle preview",
+    "build": "tsc",
+    "ladle": "npx ladle dev",
     "test": "jest"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Luke Dennis",
+  "license": "Unlicense",
   "dependencies": {
     "@ladle/react": "^2.9.0",
     "commander": "^10.0.0",
@@ -17,13 +21,13 @@
     "immer": "^9.0.19",
     "json5": "^2.2.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "typescript": "^4.9.5"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",
     "@types/node": "^18.14.0",
     "jest": "^29.4.3",
-    "ts-jest": "^29.0.5",
-    "typescript": "^4.9.5"
+    "ts-jest": "^29.0.5"
   }
 }

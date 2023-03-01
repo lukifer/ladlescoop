@@ -7,20 +7,13 @@ import {
   handleInterface,
   handleType,
 } from "../src/parseComponent"
-import {State} from "../src/types"
+import {newEmptyState} from "../src/utils"
 
 const {factory} = ts
 
-const emptyState: State = {
-  enumsMap: {},
-  importsMap: {},
-  importsUsed: {},
-  inputFilePath: "",
-  componentsMap: {},
-  propsFormat: "{Component}Props",
-}
-
 const stringify = (obj: object) => JSON.stringify(obj, (_k, v) => v === undefined ? "undefined" : v, 2)
+
+const emptyState = newEmptyState()
 
 describe("parseComponent", () => {
   it("parses props from format", () => {

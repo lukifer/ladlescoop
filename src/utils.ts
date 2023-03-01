@@ -1,4 +1,16 @@
 import {accessSync} from "fs"
+import {State} from "./types"
+
+export function newEmptyState(inputFilePath = "", propsFormat?: string): State {
+  return {
+    componentsMap: {},
+    enumsMap: {},
+    importsMap: {},
+    importsUsed: {},
+    inputFilePath,
+    propsFormat: propsFormat || '{Component}Props',
+  }
+}
 
 // Utility funcs
 export function fileExists(filePath: string) {

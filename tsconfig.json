@@ -9,6 +9,9 @@
     "outDir": "dist",
     "jsx": "react"
   },
-  "include": ["src/**/*"],
+  "include": [
+    "index.ts",
+    "src/*.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }
