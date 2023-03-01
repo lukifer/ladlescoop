@@ -21,9 +21,10 @@ import {
 
 export function run(): void {
   const program = new Command()
+  program.usage("npx ladlescoop [options] <file>")
   program.option("-o, --overwrite", "overwrite existing file")
-  program.option("--propsformat <value>", "Custom props naming format, such as '{Component}PropType'")
-  program.option("--wrap <value>", "Custom DOM wrapping: 'div(className=\"foo\"|id=\"bar\"),MyProvider(props={}),MockProvider(mocks=[])'")
+  program.option("--propsformat <value>", "Props naming format, such as '{Component}PropType'", "{Component}Props")
+  program.option("--wrap <value>", "DOM wrapping: 'MockProvider(mocks=[]),div(className=\"foo\"|id=\"bar\")'", "div")
   program.parse(process.argv)
 
   const inputFilePath = program.args[0]

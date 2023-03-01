@@ -2,14 +2,22 @@
 
 Automatically generate [Ladle](https://ladle.dev) stories from existing React components, extracting Props definitions and default values, and automatically creating [controls](https://ladle.dev/docs/controls) from types.
 
-Still a WIP: currently works on one file at a time, with the following assumptions:
-- TypeScript only
-- Components defined with `function`, rather than `const MyComponent = () => ...`
-- Props type has a name convention of `MyComponentProps`
-- ...defined in the same file as component
-- Some behaviors assume inline destructuring of props: `({foo, bar}: MyProps) => {...`
+```
+Usage: npx ladlescoop [options] <file>
 
-Story files are written based on component name, not input file. An input file of `Foo.tsx` containing `function Bar` and `function Baz` will write `Bar.stories.tsx` and `Baz.stories.tsx`. Overwrites are ignored by default; use `--overwrite` if you wish to live dangerously.
+Options:
+  -o, --overwrite        overwrite existing file
+  --propsformat <value>  Custom props naming format (default: "{Component}Props")
+  --wrap <value>         Custom DOM wrapping: 'div(className="foo"|id="bar"),MockProvider(mocks=[])'
+  -h, --help             display help for command
+```
+
+Currently works on a single file, with the following assumptions:
+- TypeScript files (*.ts, *.tsx)
+- Components defined with `function`, rather than `const MyComponent = () => ...`
+- Props type is defined in the same file as component
+
+Story files are written based on component name, not input file. An input file of `Foo.tsx` containing `function Bar` and `function Baz` will write `Bar.stories.tsx` and `Baz.stories.tsx`.
 
 To run:
 ```
