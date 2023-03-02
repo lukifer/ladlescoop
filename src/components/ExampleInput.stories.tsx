@@ -54,6 +54,7 @@ ExampleInputStory.args = {
   fontWeight: FontWeightObj.normal,
   fontWeightLabel: ExportedFontWeightObj.normal,
   labelString: '',
+  maxValue: 0,
   roundToNearest: "none",
   startingValue: 0,
 }

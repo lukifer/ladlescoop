@@ -24,11 +24,15 @@ export const FontWeightObj = {
 
 export const MAX_VALUE = 1000
 
+export type IgnoreMeProps = {
+  nothing: null
+}
+
 export type ExampleInputProps = {
   allowNegative?: boolean
   fontSize?: FontSize
   fontSizeLabel?: ExportedFontSize
-  // fontWeight?: typeof FontSizeObj[keyof typeof FontSizeObj]
+  // fontWeight?: typeof FontSizeObj[keyof typeof FontSizeObj] // TODO
   fontWeight?: string
   fontWeightLabel?: string
   labelString: string | null

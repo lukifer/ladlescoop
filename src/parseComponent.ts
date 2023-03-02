@@ -3,7 +3,6 @@ import ts from "typescript"
 import produce, {Draft} from "immer"
 
 import {
-  findNodesOfKind,
   getChildrenOfKind,
   getFirstOfKind,
   getName,
@@ -35,8 +34,10 @@ export function handleType(state: State, typeDeclaration: ts.TypeAliasDeclaratio
     const typeLiteral = getFirstOfKind(typeDeclaration, ts.SyntaxKind.TypeLiteral)
     if (!typeLiteral || !ts.isTypeLiteralNode(typeLiteral)) return state
 
-    typeLiteral.members.forEach(prop => {
-      mutableAddProp(draft, fnName, prop)
+    typeLiteral.members.forEach(propSig => {
+      if (!ts.isPropertySignature(propSig)) return
+      const propName = getName(propSig)
+      mutableAddProp(draft, fnName, propName, propSig.type, !!propSig.questionToken)
     })
     return draft
   })
@@ -51,10 +52,13 @@ export function handleInterface(
     const fnName = getFnFromProps(state.propsFormat, propsName)
     if (!fnName) return state
 
-    const props = getChildrenOfKind(interfaceDeclaration, [ts.SyntaxKind.PropertySignature])
+    const propSigs = getChildrenOfKind(interfaceDeclaration, [ts.SyntaxKind.PropertySignature])
 
-    props?.forEach((prop) => {
-      mutableAddProp(draft, fnName, prop)
+    propSigs?.forEach((propSig) => {
+      if (!ts.isPropertySignature(propSig) || !ts.isIdentifier(propSig.name))
+        return
+      const propName = propSig.name.escapedText.toString()
+      mutableAddProp(draft, fnName, propName, propSig.type, !!propSig.questionToken)
     })
 
     return draft
@@ -64,29 +68,24 @@ export function handleInterface(
 export function mutableAddProp(
   draft: Draft<State>,
   fnName: string,
-  prop: ts.Node,
+  propName: string,
+  typeNode: ts.TypeNode,
+  isOptional: boolean,
 ): void {
-  if (
-       !ts.isPropertySignature(prop)
-    || !ts.isIdentifier(prop.name)
-    || !ts.isTypeNode(prop.type)
-  ) return
-
-  const propName = prop.name.escapedText.toString()
   if (!draft.componentsMap[fnName]) {
     draft.componentsMap[fnName] = {props: {}}
   }
 
-  const set = (p: Pick<Prop, "kind" | "type" | "argType">): void => {
+  const set = (p: Omit<Prop, "name" | "isOptional">): void => {
     draft.componentsMap[fnName].props[propName] = {
       ...p,
       name: propName,
-      isOptional: !!prop.questionToken
+      isOptional,
     }
   }
 
-  const typeNode = prop.type
   const {kind} = typeNode
+  // TODO: for optional args, use default value if present (prop.intializer)
   switch (kind) {
     case ts.SyntaxKind.UnionType:
       if (!ts.isUnionTypeNode(typeNode)) return
@@ -99,37 +98,43 @@ export function mutableAddProp(
         })
       }
       else {
-        // If union includes number or a string, we create those controls (in that order)
-        const numType = typeNode.types.find(t => t.kind === ts.SyntaxKind.NumberKeyword)
-        const strType = typeNode.types.find(t => t.kind === ts.SyntaxKind.StringKeyword)
-        if (numType || strType) {
+        // If union includes string or a number, we create those controls (in that order)
+        if (typeNode.types.find(t => t.kind === ts.SyntaxKind.StringKeyword)) {
           return set({
-            kind: numType
-              ? ts.SyntaxKind.NumberKeyword
-              : ts.SyntaxKind.StringKeyword,
+            kind: ts.SyntaxKind.StringKeyword,
             type: typeNode.getText(),
+            defaultValue: "''",
+          })
+        }
+        else if (typeNode.types.find(t => t.kind === ts.SyntaxKind.NumberKeyword)) {
+          return set({
+            kind: ts.SyntaxKind.NumberKeyword,
+            type: typeNode.getText(),
+            defaultValue: '0'
           })
         }
       }
       break
     case ts.SyntaxKind.BooleanKeyword:
-      return set({kind, type: "boolean"})
+      return set({kind, type: "boolean", defaultValue: "false"})
     case ts.SyntaxKind.StringKeyword:
-      return set({kind, type: "string"})
+      return set({kind, type: "string", defaultValue: "''"})
     case ts.SyntaxKind.NumberKeyword:
-      return set({kind, type: "number"})
+      return set({kind, type: "number", defaultValue: "0"})
     case ts.SyntaxKind.TypeReference:
-      if (!ts.isTypeReferenceNode) return
+      if (!ts.isTypeReferenceNode(typeNode)) break
       const enumName = typeNode.getText()
       const propSet = {kind, type: enumName}
-      if (draft.enumsMap[enumName]) {
+      if (!!draft.enumsMap[enumName]) {
         const enumKeys = Object.keys(draft.enumsMap[enumName])
         return set({
           ...propSet,
-          argType: createArgType(enumKeys, enumName)
+          argType: createArgType(enumKeys, enumName),
+          defaultValue: `${enumName}.${enumKeys[0]}`,
         })
       }
       else if (draft.importsMap[enumName]) {
+        // TODO: defaultValue / argType here
         const fullImportPath = path.resolve(path.dirname(draft.inputFilePath), draft.importsMap[enumName]);
         const sourceFile = getSourceFile(fullImportPath)
         sourceFile?.statements.forEach(statement => {
@@ -271,7 +276,11 @@ export function handleFunction(
 
   return produce(state, draft => {
     if (!isExported(fn)) warn(`Warning: Component ${fnName} is not exported`)
-    draft.componentsMap[fnName].isDefaultExport = !!fn.modifiers?.some(ts.isDefaultClause)
+    draft.componentsMap[fnName] = {
+      ...draft.componentsMap[fnName],
+      isDefaultExport: !!fn.modifiers?.some(ts.isDefaultClause),
+      hasFunction: true
+    }
 
     const propsParam = getFirstOfKind(fn, ts.SyntaxKind.Parameter)
     const objectBinding = getFirstOfKind(propsParam, ts.SyntaxKind.ObjectBindingPattern)
@@ -323,7 +332,7 @@ export function mutableAddPropBinding(
             const path = draft.importsMap[enumName] || `./${fnName}`
             draft.importsUsed[enumName] = path
           }
-          if (!draft.componentsMap[fnName].props[propName].argType) {
+          if (!draft.componentsMap[fnName].props[propName]?.argType) {
             const enumKeys = Object.keys(draft.enumsMap[enumName])
             draft.componentsMap[fnName].props[propName].argType = createArgType(enumKeys, enumName)
           }

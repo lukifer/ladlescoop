@@ -33,9 +33,10 @@ const tsnode_1 = require("./src/tsnode");
 const utils_1 = require("./src/utils");
 function run() {
     const program = new commander_1.Command();
+    program.usage("npx ladlescoop [options] <file>");
     program.option("-o, --overwrite", "overwrite existing file");
-    program.option("--propsformat <value>", "Custom props naming format, such as '{Component}PropType'");
-    program.option("--wrap <value>", "Custom DOM wrapping: 'div(className=\"foo\"|id=\"bar\"),MyProvider(props={}),MockProvider(mocks=[])'");
+    program.option("--propsformat <value>", "Props naming format, such as '{Component}PropType'", "{Component}Props");
+    program.option("--wrap <value>", "DOM wrapping: 'MockProvider(mocks=[]),div(className=\"foo\"|id=\"bar\")'", "div");
     program.parse(process.argv);
     const inputFilePath = program.args[0];
     if (!inputFilePath) {
@@ -97,8 +98,8 @@ function run() {
                 (0, utils_1.warn)(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`);
                 return;
             }
-            const { props, isDefaultExport } = state.componentsMap[componentName];
-            if (!props)
+            const { hasFunction, isDefaultExport, props } = state.componentsMap[componentName];
+            if (!props || !hasFunction)
                 return;
             const { importsUsed } = state;
             const renderedStory = (0, storyTemplate_1.renderStory)({

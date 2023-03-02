@@ -91,8 +91,8 @@ export function run(): void {
         warn(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`)
         return
       }
-      const {props, isDefaultExport} = state.componentsMap[componentName]
-      if (!props) return
+      const {hasFunction, isDefaultExport, props} = state.componentsMap[componentName]
+      if (!props || !hasFunction) return
       const {importsUsed} = state
       const renderedStory = renderStory({
         componentName,

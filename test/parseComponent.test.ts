@@ -86,6 +86,7 @@ describe("parseComponent", () => {
       "salsa": {
         "kind": 152,
         "type": "string",
+        "defaultValue": "''",
         "name": "salsa",
         "isOptional": true
       }
@@ -121,6 +122,7 @@ describe("parseComponent", () => {
       "salsa": {
         "kind": 152,
         "type": "string",
+        "defaultValue": "''",
         "name": "salsa",
         "isOptional": true
       }

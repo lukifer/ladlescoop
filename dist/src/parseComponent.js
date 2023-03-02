@@ -24,8 +24,11 @@ function handleType(state, typeDeclaration) {
         const typeLiteral = (0, tsnode_1.getFirstOfKind)(typeDeclaration, typescript_1.default.SyntaxKind.TypeLiteral);
         if (!typeLiteral || !typescript_1.default.isTypeLiteralNode(typeLiteral))
             return state;
-        typeLiteral.members.forEach(prop => {
-            mutableAddProp(draft, fnName, prop);
+        typeLiteral.members.forEach(propSig => {
+            if (!typescript_1.default.isPropertySignature(propSig))
+                return;
+            const propName = (0, tsnode_1.getName)(propSig);
+            mutableAddProp(draft, fnName, propName, propSig.type, !!propSig.questionToken);
         });
         return draft;
     });
@@ -37,28 +40,26 @@ function handleInterface(state, interfaceDeclaration) {
         const fnName = getFnFromProps(state.propsFormat, propsName);
         if (!fnName)
             return state;
-        const props = (0, tsnode_1.getChildrenOfKind)(interfaceDeclaration, [typescript_1.default.SyntaxKind.PropertySignature]);
-        props === null || props === void 0 ? void 0 : props.forEach((prop) => {
-            mutableAddProp(draft, fnName, prop);
+        const propSigs = (0, tsnode_1.getChildrenOfKind)(interfaceDeclaration, [typescript_1.default.SyntaxKind.PropertySignature]);
+        propSigs === null || propSigs === void 0 ? void 0 : propSigs.forEach((propSig) => {
+            if (!typescript_1.default.isPropertySignature(propSig) || !typescript_1.default.isIdentifier(propSig.name))
+                return;
+            const propName = propSig.name.escapedText.toString();
+            mutableAddProp(draft, fnName, propName, propSig.type, !!propSig.questionToken);
         });
         return draft;
     });
 }
 exports.handleInterface = handleInterface;
-function mutableAddProp(draft, fnName, prop) {
-    if (!typescript_1.default.isPropertySignature(prop)
-        || !typescript_1.default.isIdentifier(prop.name)
-        || !typescript_1.default.isTypeNode(prop.type))
-        return;
-    const propName = prop.name.escapedText.toString();
+function mutableAddProp(draft, fnName, propName, typeNode, isOptional) {
     if (!draft.componentsMap[fnName]) {
         draft.componentsMap[fnName] = { props: {} };
     }
     const set = (p) => {
-        draft.componentsMap[fnName].props[propName] = Object.assign(Object.assign({}, p), { name: propName, isOptional: !!prop.questionToken });
+        draft.componentsMap[fnName].props[propName] = Object.assign(Object.assign({}, p), { name: propName, isOptional });
     };
-    const typeNode = prop.type;
     const { kind } = typeNode;
+    // TODO: for optional args, use default value if present (prop.intializer)
     switch (kind) {
         case typescript_1.default.SyntaxKind.UnionType:
             if (!typescript_1.default.isUnionTypeNode(typeNode))
@@ -72,35 +73,40 @@ function mutableAddProp(draft, fnName, prop) {
                 });
             }
             else {
-                // If union includes number or a string, we create those controls (in that order)
-                const numType = typeNode.types.find(t => t.kind === typescript_1.default.SyntaxKind.NumberKeyword);
-                const strType = typeNode.types.find(t => t.kind === typescript_1.default.SyntaxKind.StringKeyword);
-                if (numType || strType) {
+                // If union includes string or a number, we create those controls (in that order)
+                if (typeNode.types.find(t => t.kind === typescript_1.default.SyntaxKind.StringKeyword)) {
                     return set({
-                        kind: numType
-                            ? typescript_1.default.SyntaxKind.NumberKeyword
-                            : typescript_1.default.SyntaxKind.StringKeyword,
+                        kind: typescript_1.default.SyntaxKind.StringKeyword,
                         type: typeNode.getText(),
+                        defaultValue: "''",
+                    });
+                }
+                else if (typeNode.types.find(t => t.kind === typescript_1.default.SyntaxKind.NumberKeyword)) {
+                    return set({
+                        kind: typescript_1.default.SyntaxKind.NumberKeyword,
+                        type: typeNode.getText(),
+                        defaultValue: '0'
                     });
                 }
             }
             break;
         case typescript_1.default.SyntaxKind.BooleanKeyword:
-            return set({ kind, type: "boolean" });
+            return set({ kind, type: "boolean", defaultValue: "false" });
         case typescript_1.default.SyntaxKind.StringKeyword:
-            return set({ kind, type: "string" });
+            return set({ kind, type: "string", defaultValue: "''" });
         case typescript_1.default.SyntaxKind.NumberKeyword:
-            return set({ kind, type: "number" });
+            return set({ kind, type: "number", defaultValue: "0" });
         case typescript_1.default.SyntaxKind.TypeReference:
-            if (!typescript_1.default.isTypeReferenceNode)
-                return;
+            if (!typescript_1.default.isTypeReferenceNode(typeNode))
+                break;
             const enumName = typeNode.getText();
             const propSet = { kind, type: enumName };
-            if (draft.enumsMap[enumName]) {
+            if (!!draft.enumsMap[enumName]) {
                 const enumKeys = Object.keys(draft.enumsMap[enumName]);
-                return set(Object.assign(Object.assign({}, propSet), { argType: createArgType(enumKeys, enumName) }));
+                return set(Object.assign(Object.assign({}, propSet), { argType: createArgType(enumKeys, enumName), defaultValue: `${enumName}.${enumKeys[0]}` }));
             }
             else if (draft.importsMap[enumName]) {
+                // TODO: defaultValue / argType here
                 const fullImportPath = path_1.default.resolve(path_1.default.dirname(draft.inputFilePath), draft.importsMap[enumName]);
                 const sourceFile = (0, tsnode_1.getSourceFile)(fullImportPath);
                 sourceFile === null || sourceFile === void 0 ? void 0 : sourceFile.statements.forEach(statement => {
@@ -226,7 +232,7 @@ function handleFunction(state, fn) {
         var _a;
         if (!(0, tsnode_1.isExported)(fn))
             (0, utils_1.warn)(`Warning: Component ${fnName} is not exported`);
-        draft.componentsMap[fnName].isDefaultExport = !!((_a = fn.modifiers) === null || _a === void 0 ? void 0 : _a.some(typescript_1.default.isDefaultClause));
+        draft.componentsMap[fnName] = Object.assign(Object.assign({}, draft.componentsMap[fnName]), { isDefaultExport: !!((_a = fn.modifiers) === null || _a === void 0 ? void 0 : _a.some(typescript_1.default.isDefaultClause)), hasFunction: true });
         const propsParam = (0, tsnode_1.getFirstOfKind)(fn, typescript_1.default.SyntaxKind.Parameter);
         const objectBinding = (0, tsnode_1.getFirstOfKind)(propsParam, typescript_1.default.SyntaxKind.ObjectBindingPattern);
         (0, tsnode_1.getChildrenOfKind)(objectBinding, [typescript_1.default.SyntaxKind.BindingElement]).forEach((bind) => {
@@ -241,6 +247,7 @@ exports.handleFunction = handleFunction;
 function mutableAddPropBinding(draft, fnName, bind) {
     const propName = (0, tsnode_1.getName)(bind);
     bind.forEachChild(token => {
+        var _a;
         const set = (val) => {
             if (draft.componentsMap[fnName].props[propName]) {
                 draft.componentsMap[fnName].props[propName].defaultValue = `${val}`;
@@ -275,7 +282,7 @@ function mutableAddPropBinding(draft, fnName, bind) {
                         const path = draft.importsMap[enumName] || `./${fnName}`;
                         draft.importsUsed[enumName] = path;
                     }
-                    if (!draft.componentsMap[fnName].props[propName].argType) {
+                    if (!((_a = draft.componentsMap[fnName].props[propName]) === null || _a === void 0 ? void 0 : _a.argType)) {
                         const enumKeys = Object.keys(draft.enumsMap[enumName]);
                         draft.componentsMap[fnName].props[propName].argType = createArgType(enumKeys, enumName);
                     }

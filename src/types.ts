@@ -22,6 +22,7 @@ export type State = DeepReadonly<{
   componentsMap: Record<string, {
     props: Record<string, Prop>
     isDefaultExport?: boolean
+    hasFunction?: boolean
   }>
   enumsMap: Record<string, Record<string, EnumVal>>
   importsMap: Record<string, string>
