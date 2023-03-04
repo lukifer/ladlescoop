@@ -19,6 +19,7 @@ import {
 import {
   getFileName,
   getFullPath,
+  newEmptyComponent,
   warn,
 } from "./utils"
 
@@ -76,7 +77,7 @@ export function mutableAddProp(
   isOptional: boolean,
 ): void {
   if (!draft.componentsMap[fnName]) {
-    draft.componentsMap[fnName] = {props: {}}
+    draft.componentsMap[fnName] = newEmptyComponent()
   }
 
   const set = (p: Omit<Prop, "name" | "isOptional">): void => {
@@ -282,13 +283,14 @@ export function handleFunction(
   fn: ts.FunctionDeclaration
 ): State {
   const fnName = getName(fn)
-  if (!/^([A-Z][a-zA-Z0-9_]+)/.test(fnName) || !state.componentsMap[fnName])
+  if (!/^([A-Z][a-zA-Z0-9_]+)/.test(fnName))
+  if (!state.componentsMap[fnName] && fnName !== getFileName(state.inputFilePath))
     return state
 
   return produce(state, draft => {
     if (!isExported(fn)) warn(`Warning: Component ${fnName} is not exported`)
     draft.componentsMap[fnName] = {
-      ...draft.componentsMap[fnName],
+      ...(draft.componentsMap[fnName] || newEmptyComponent()),
       isDefaultExport: !!fn.modifiers?.some(m => m?.kind === ts.SyntaxKind.DefaultKeyword),
       hasFunction: true
     }
@@ -339,9 +341,9 @@ export function mutableAddPropBinding(
         if (!ts.isPropertyAccessExpression(token)) return
         const enumName = getName(token)
         if (draft.enumsMap[enumName]) {
-          if (!draft.importsUsed[enumName]) {
+          if (!draft.componentsMap[fnName].importsUsed[enumName]) {
             const path = draft.importsMap[enumName] || `./${getFileName(draft.inputFilePath)}`
-            draft.importsUsed[enumName] = path
+            draft.componentsMap[fnName].importsUsed[enumName] = path
           }
           if (!draft.componentsMap[fnName].props[propName]?.argType) {
             const enumKeys = Object.keys(draft.enumsMap[enumName])

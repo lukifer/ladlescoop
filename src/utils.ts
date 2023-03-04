@@ -1,16 +1,22 @@
 import {accessSync} from "fs"
 import path from "path"
 
-import {State} from "./types"
+import {Component, State} from "./types"
 
 export function newEmptyState(inputFilePath = "", propsFormat?: string): State {
   return {
     componentsMap: {},
     enumsMap: {},
     importsMap: {},
-    importsUsed: {},
     inputFilePath,
     propsFormat: propsFormat || '{Component}Props',
+  }
+}
+
+export function newEmptyComponent(): Component {
+  return {
+    props: {},
+    importsUsed: {},
   }
 }
 
@@ -30,8 +36,12 @@ export function getFileName(filePath: string, withExtension = false) {
   return inputFileName.replace(/\.tsx?$/, '')
 }
 
-export function getFullPath(inputFilePath: string, relativePath: string) {
-  return path.resolve(path.dirname(inputFilePath), relativePath)
+export function getFullPath(filePath: string, relativePath: string) {
+  return path.resolve(path.dirname(filePath), relativePath)
+}
+
+export function getFileDir(filePath: string) {
+  return filePath.replace(/^(.+)\/[^/]+$/, "$1/")
 }
 
 export function indent(str: string, ct = 1) {
@@ -44,6 +54,10 @@ export function indentLines(str: string[], ct = 1) {
 }
 
 export function warn(msg: string) {
+  console.log(msg)
+}
+
+export function echo(msg: string) {
   console.log(msg)
 }
 

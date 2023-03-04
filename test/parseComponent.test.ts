@@ -90,7 +90,8 @@ describe("parseComponent", () => {
         "name": "salsa",
         "isOptional": true
       }
-    }
+    },
+    "importsUsed": {}
   }
 }"
 `)
@@ -126,7 +127,8 @@ describe("parseComponent", () => {
         "name": "salsa",
         "isOptional": true
       }
-    }
+    },
+    "importsUsed": {}
   }
 }"
 `)

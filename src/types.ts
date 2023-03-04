@@ -18,16 +18,18 @@ export const ExportedFontWeightObj = {
 } as const
 export const EXPORTED_MAX_VALUE = 1000
 
+export type Component = {
+  hasChildren?: boolean
+  hasFunction?: boolean
+  importsUsed: Record<string, string>
+  isDefaultExport?: boolean
+  props: Record<string, Prop>
+}
+
 export type State = DeepReadonly<{
-  componentsMap: Record<string, {
-    hasChildren?: boolean
-    hasFunction?: boolean
-    isDefaultExport?: boolean
-    props: Record<string, Prop>
-  }>
+  componentsMap: Record<string, Component>
   enumsMap: Record<string, Record<string, EnumVal>>
   importsMap: Record<string, string>
-  importsUsed: Record<string, string>
   inputFilePath: string
   propsFormat: string
 }>

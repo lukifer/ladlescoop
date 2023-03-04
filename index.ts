@@ -13,7 +13,10 @@ import {
 } from './src/parseComponent'
 import {getSourceFile} from './src/tsnode'
 import {
+  echo,
   fileExists,
+  getFileDir,
+  getFileName,
   newEmptyState,
   nope,
   warn,
@@ -27,22 +30,21 @@ export function run(): void {
   program.option("--wrap <value>", "DOM wrapping: 'MockProvider(mocks=[]),div(className=\"foo\"|id=\"bar\")'", "div")
   program.parse(process.argv)
 
-  const inputFilePath = program.args[0]
+  let inputFilePath = program.args[0]
   if (!inputFilePath) {
     nope("Error: missing file path argument")
   }
   if (!inputFilePath.match(/\.tsx?$/)) {
     nope("Only TypeScript currently supported")
   }
+  if (getFileDir(inputFilePath) === inputFilePath) {
+    inputFilePath = `./${inputFilePath}`
+  }
 
   const filesWritten = []
 
   function createStoryForFile(filePath: string) {
-    const dirPath = filePath.replace(/^(.+)\/[^/]+$/, "$1/")
-    if (!dirPath || dirPath === filePath) {
-      warn("Only relative paths supported: use './myFile.ts', not 'myFile.ts'")
-      return
-    }
+    const dirPath = getFileDir(filePath)
 
     const sourceFile: ts.SourceFile = getSourceFile(filePath)
     if (!sourceFile) nope(`An error occurred reading "${filePath}"`)
@@ -91,9 +93,14 @@ export function run(): void {
         warn(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`)
         return
       }
-      const {hasChildren, hasFunction, isDefaultExport, props} = state.componentsMap[componentName]
-      if (!props || !hasFunction) return
-      const {importsUsed} = state
+      const {
+        hasChildren,
+        hasFunction,
+        importsUsed,
+        isDefaultExport,props,
+      } = state.componentsMap[componentName]
+      if (!hasFunction) return
+      if (!props && componentName !== getFileName(filePath)) return
       const renderedStory = renderStory({
         componentName,
         hasChildren,
@@ -118,9 +125,9 @@ export function run(): void {
 
   if (filesWritten.length) {
     const plur = filesWritten.length > 1 ? 's' : ''
-    console.log(`Wrote the following file${plur}: \n${filesWritten.join('\n')}`)
+    echo(`Wrote the following file${plur}: \n${filesWritten.join('\n')}`)
   } else {
-    console.log("No files written.")
+    echo("No files written.")
   }
 }
 

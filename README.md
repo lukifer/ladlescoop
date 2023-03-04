@@ -36,9 +36,8 @@ npm test -- -u # update snapshots
 - Function props
 - JSX props
 - Custom types imports
-- Handle no props
-- Support input paths with file name only
 - Arrow-function components
+- Handle props destructuring within render function
 - Parsing plain JS in addition to TypeScript
 - Multiple files and directories on CLI
 - Settings for control prefences (`select` vs `radio`, etc)
