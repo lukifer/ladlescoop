@@ -96,6 +96,9 @@ function mutableAddProp(draft, fnName, propName, typeNode, isOptional) {
             return set({ kind, type: "string", defaultValue: "''" });
         case typescript_1.default.SyntaxKind.NumberKeyword:
             return set({ kind, type: "number", defaultValue: "0" });
+        case typescript_1.default.SyntaxKind.FunctionType:
+            // TODO
+            return;
         case typescript_1.default.SyntaxKind.TypeReference:
             if (!typescript_1.default.isTypeReferenceNode(typeNode))
                 break;
@@ -232,7 +235,7 @@ function handleFunction(state, fn) {
         var _a;
         if (!(0, tsnode_1.isExported)(fn))
             (0, utils_1.warn)(`Warning: Component ${fnName} is not exported`);
-        draft.componentsMap[fnName] = Object.assign(Object.assign({}, draft.componentsMap[fnName]), { isDefaultExport: !!((_a = fn.modifiers) === null || _a === void 0 ? void 0 : _a.some(typescript_1.default.isDefaultClause)), hasFunction: true });
+        draft.componentsMap[fnName] = Object.assign(Object.assign({}, draft.componentsMap[fnName]), { isDefaultExport: !!((_a = fn.modifiers) === null || _a === void 0 ? void 0 : _a.some(m => (m === null || m === void 0 ? void 0 : m.kind) === typescript_1.default.SyntaxKind.DefaultKeyword)), hasFunction: true });
         const propsParam = (0, tsnode_1.getFirstOfKind)(fn, typescript_1.default.SyntaxKind.Parameter);
         const objectBinding = (0, tsnode_1.getFirstOfKind)(propsParam, typescript_1.default.SyntaxKind.ObjectBindingPattern);
         (0, tsnode_1.getChildrenOfKind)(objectBinding, [typescript_1.default.SyntaxKind.BindingElement]).forEach((bind) => {
@@ -255,9 +258,9 @@ function mutableAddPropBinding(draft, fnName, bind) {
         };
         if (bind.getChildCount() === 1) {
             const prop = draft.componentsMap[fnName].props[propName];
-            if (prop.kind === typescript_1.default.SyntaxKind.NumberKeyword)
+            if ((prop === null || prop === void 0 ? void 0 : prop.kind) === typescript_1.default.SyntaxKind.NumberKeyword)
                 return set("0");
-            else if (prop.kind === typescript_1.default.SyntaxKind.StringKeyword)
+            else if ((prop === null || prop === void 0 ? void 0 : prop.kind) === typescript_1.default.SyntaxKind.StringKeyword)
                 return set("''");
         }
         switch (token.kind) {
