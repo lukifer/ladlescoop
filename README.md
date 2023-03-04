@@ -34,6 +34,11 @@ npm test -- -u # update snapshots
 ##### TODO:
 - Indexed access of pseudo-enum object constants
 - Function props
+- JSX props
+- Custom types imports
+- Handle no props
+- Support input paths with file name only
+- Arrow-function components
 - Parsing plain JS in addition to TypeScript
 - Multiple files and directories on CLI
 - Settings for control prefences (`select` vs `radio`, etc)

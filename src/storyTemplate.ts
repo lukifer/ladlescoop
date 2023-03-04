@@ -5,11 +5,16 @@ import {
   DomTree,
   Prop,
 } from "./types"
-import {indentLines} from "./utils"
+import {
+  getFileName,
+  indentLines,
+} from "./utils"
 
 type StoryRenderOptions = {
   componentName: Readonly<string>
+  hasChildren: boolean
   importsUsed: DeepReadonly<Record<string, string>>,
+  inputFilePath: string
   isDefaultExport?: boolean
   props?: DeepReadonly<Record<string, Prop>>
   wrap?: string
@@ -17,7 +22,9 @@ type StoryRenderOptions = {
 
 export function renderStory({
   componentName,
+  hasChildren,
   importsUsed,
+  inputFilePath,
   isDefaultExport,
   props = {},
   wrap = 'div',
@@ -37,6 +44,8 @@ export function renderStory({
     }
   }, {})
 
+  const inputFileName = getFileName(inputFilePath)
+
   const importsByFile = Object.keys(importsUsed).reduce<Record<string, string[]>>((map, imp) => {
     const path = importsUsed[imp]
     if (!map[path]) map[path] = []
@@ -46,6 +55,7 @@ export function renderStory({
 
   const domNodes = unpackWrap(wrap)
   domNodes.push([componentName, Object.keys(props).map(p => [p, p])])
+  if (hasChildren) domNodes.push(['div'])
   // console.log({domNodes})
   // console.log({wrap})
   // console.log({props})
@@ -55,10 +65,9 @@ export function renderStory({
 `import React from "react"
 import type {Story} from "@ladle/react"
 
-import ${isDefaultExport ? componentName : `{${componentName}}`} from "./${componentName}"
+import ${isDefaultExport ? componentName : `{${componentName}}`} from "./${inputFileName}"
 ${Object.keys(importsByFile).map(path =>
-`import {${importsByFile[path].join(', ')}} from "${path}"`
-).join("\n")}
+`import {${importsByFile[path].join(', ')}} from "${path}"`).join("\n")}
 
 export const ${storyName}: Story<{${Object.keys(props).map(p => `
   ${p}${props[p].isOptional ? "?" : ""}: ${props[p].type}`).join("")}
@@ -66,7 +75,7 @@ export const ${storyName}: Story<{${Object.keys(props).map(p => `
   ${Object.keys(props).join(",\n  ")}
 }) => {
   return (
-${renderDomTree(domNodes, 2)}
+${renderDomTree(componentName, domNodes, 2)}
   )
 }
 ${defaultValues?.length ? `
@@ -102,21 +111,40 @@ export function unpackWrap(wrap: string): DomTree {
   })
 }
 
-export function renderDomTree(domNodes: DomTree, indentCt = 1) {
+export function renderDomTree(componentName: string, domNodes: DomTree, indentCt = 1) {
   const [first, ...rest] = domNodes
   const [nodeName, attrs] = first
-  const attrStrs = (attrs || []).map(([k, v]) => `${k}={${v}}`)
+  const attrStrs = (attrs || []).map(([k, v]) => v === undefined
+    ? `${k}`
+    : `${k}={${v}}`
+  )
 
-  if (!rest.length) return indentLines([
-    `<h3>${nodeName}</h3>`,
-    `<${nodeName}`,
-    ...attrStrs.map(attr => `  ${attr}`),
-    `/>`
+  const isTheComponent = nodeName === componentName
+  const isLast = !rest.length
+
+  const domPrefix = isTheComponent
+    ? [`<h3>${nodeName}</h3>`]
+    : []
+
+  const renderedProps = isTheComponent
+    ? [
+      `<${nodeName}`,
+      ...attrStrs.map(attr => `  ${attr}`),
+      `${isLast ? '/' : ''}>`
+    ]
+    : [
+      `<${nodeName}${attrStrs.length ? " " + attrStrs.join(" ") : ""}${isLast ? ' /' : ''}>`
+    ]
+
+  if (isLast) return indentLines([
+    ...domPrefix,
+    ...renderedProps,
   ]).join("\n")
 
   return indentLines([
-    `<${nodeName}${attrStrs.length ? " " + attrStrs.join(" ") : ""}>`,
-    renderDomTree(rest),
+    ...domPrefix,
+    ...renderedProps,
+    renderDomTree(componentName, rest),
     `</${nodeName}>`
   ], indentCt).join("\n")
 }

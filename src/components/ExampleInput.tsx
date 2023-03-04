@@ -30,6 +30,7 @@ export type IgnoreMeProps = {
 
 export type ExampleInputProps = {
   allowNegative?: boolean
+  children?: React.ReactNode
   fontSize?: FontSize
   fontSizeLabel?: ExportedFontSize
   // fontWeight?: typeof FontSizeObj[keyof typeof FontSizeObj] // TODO

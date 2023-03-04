@@ -9,10 +9,17 @@ describe("renderStory", () => {
     const rendered = renderStory({
       componentName: "Taco",
       importsUsed: {
-        "Cheese": "./Taco",
-        "Salsa": "./Taco",
+        "Cheese": "./Tacos",
+        "Salsa": "./Tacos",
       },
+      hasChildren: true,
+      inputFilePath: "../dir/Tacos.tsx",
       props: {
+        children: {
+          name: "children",
+          type: "React.ReactNode",
+          isOptional: true,
+        },
         toppings: {
           name: "toppings",
           type: "string[]",
@@ -43,14 +50,16 @@ describe("renderStory", () => {
 "import React from "react"
 import type {Story} from "@ladle/react"
 
-import {Taco} from "./Taco"
-import {Cheese, Salsa} from "./Taco"
+import {Taco} from "./Tacos"
+import {Cheese, Salsa} from "./Tacos"
 
 export const TacoStory: Story<{
+  children?: React.ReactNode
   toppings: string[]
   cheese: Cheese
   softShell?: boolean
 }> = ({
+  children,
   toppings,
   cheese,
   softShell
@@ -60,10 +69,13 @@ export const TacoStory: Story<{
       <MyProvider>
         <h3>Taco</h3>
         <Taco
+          children={children}
           toppings={toppings}
           cheese={cheese}
           softShell={softShell}
-        />
+        >
+          <div />
+        </Taco>
       </MyProvider>
     </div>
   )
@@ -107,7 +119,7 @@ TacoStory.argTypes = {
   it("renders a DOM tree", () => {
     const domTree = [...unpackWrap(testString)]
     domTree.push(['Taco'])
-    const rendered = renderDomTree(domTree)
+    const rendered = renderDomTree('Taco', domTree)
     expect(rendered).toMatchInlineSnapshot(`
 "  <main>
     <div className={'foo'} id={'bar'}>
@@ -115,6 +127,28 @@ TacoStory.argTypes = {
         <h3>Taco</h3>
         <Taco
         />
+      </MockProvider>
+    </div>
+  </main>"
+`)
+  })
+
+  it("renders a DOM tree with a child DOM node", () => {
+    const domTree = [...unpackWrap(testString)]
+    domTree.push(['Taco', [['withCheese'], ['salsa', '"pico"']]])
+    domTree.push(['div'])
+    const rendered = renderDomTree('Taco', domTree)
+    expect(rendered).toMatchInlineSnapshot(`
+"  <main>
+    <div className={'foo'} id={'bar'}>
+      <MockProvider mocks={[]}>
+        <h3>Taco</h3>
+        <Taco
+          withCheese
+          salsa={"pico"}
+        >
+          <div />
+        </Taco>
       </MockProvider>
     </div>
   </main>"

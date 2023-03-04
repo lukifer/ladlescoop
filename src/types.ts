@@ -20,9 +20,10 @@ export const EXPORTED_MAX_VALUE = 1000
 
 export type State = DeepReadonly<{
   componentsMap: Record<string, {
-    props: Record<string, Prop>
-    isDefaultExport?: boolean
+    hasChildren?: boolean
     hasFunction?: boolean
+    isDefaultExport?: boolean
+    props: Record<string, Prop>
   }>
   enumsMap: Record<string, Record<string, EnumVal>>
   importsMap: Record<string, string>
@@ -47,12 +48,12 @@ export type DefaultValue = boolean | number | string | string[] | null
 export type EnumVal = string | number | undefined
 
 export type Prop = {
-  name: string
-  kind?: ts.SyntaxKind
-  type: string
-  isOptional: boolean
-  defaultValue?: string
   argType?: ArgType
+  defaultValue?: string
+  isOptional: boolean
+  kind?: ts.SyntaxKind
+  name: string
+  type: string
 }
 
 export type DomTree = Array<[

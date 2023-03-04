@@ -1,4 +1,3 @@
-import path from "path"
 import ts from "typescript"
 import produce, {Draft} from "immer"
 
@@ -17,7 +16,11 @@ import {
   Prop,
   State,
 } from "./types"
-import {warn} from "./utils"
+import {
+  getFileName,
+  getFullPath,
+  warn,
+} from "./utils"
 
 export function getFnFromProps(format: string, propsName: string) {
   const reg = new RegExp("^"+format.replace("{Component}", "([A-Z][a-zA-Z0-9_]+)")+"$")
@@ -84,6 +87,11 @@ export function mutableAddProp(
     }
   }
 
+  if (propName === 'children') {
+    draft.componentsMap[fnName].hasChildren = true
+    return
+  }
+
   const {kind} = typeNode
   // TODO: for optional args, use default value if present (prop.intializer)
   switch (kind) {
@@ -138,7 +146,7 @@ export function mutableAddProp(
       }
       else if (draft.importsMap[enumName]) {
         // TODO: defaultValue / argType here
-        const fullImportPath = path.resolve(path.dirname(draft.inputFilePath), draft.importsMap[enumName]);
+        const fullImportPath = getFullPath(draft.inputFilePath, draft.importsMap[enumName])
         const sourceFile = getSourceFile(fullImportPath)
         sourceFile?.statements.forEach(statement => {
           switch (statement.kind) {
@@ -332,7 +340,7 @@ export function mutableAddPropBinding(
         const enumName = getName(token)
         if (draft.enumsMap[enumName]) {
           if (!draft.importsUsed[enumName]) {
-            const path = draft.importsMap[enumName] || `./${fnName}`
+            const path = draft.importsMap[enumName] || `./${getFileName(draft.inputFilePath)}`
             draft.importsUsed[enumName] = path
           }
           if (!draft.componentsMap[fnName].props[propName]?.argType) {

@@ -1,4 +1,6 @@
 import {accessSync} from "fs"
+import path from "path"
+
 import {State} from "./types"
 
 export function newEmptyState(inputFilePath = "", propsFormat?: string): State {
@@ -20,6 +22,16 @@ export function fileExists(filePath: string) {
     exists = true
   } catch {}
   return exists
+}
+
+export function getFileName(filePath: string, withExtension = false) {
+  const inputFileName = filePath.split("/").reverse()[0]
+  if (withExtension) return inputFileName
+  return inputFileName.replace(/\.tsx?$/, '')
+}
+
+export function getFullPath(inputFilePath: string, relativePath: string) {
+  return path.resolve(path.dirname(inputFilePath), relativePath)
 }
 
 export function indent(str: string, ct = 1) {

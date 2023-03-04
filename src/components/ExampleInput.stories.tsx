@@ -42,7 +42,9 @@ export const ExampleInputStory: Story<{
         maxValue={maxValue}
         roundToNearest={roundToNearest}
         startingValue={startingValue}
-      />
+      >
+        <div />
+      </ExampleInput>
     </div>
   )
 }

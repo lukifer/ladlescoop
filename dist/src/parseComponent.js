@@ -4,7 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleImport = exports.createArgType = exports.mutableAddPropBinding = exports.handleFunction = exports.extractObjectEnumValues = exports.extractEnumValues = exports.getObjectEnumLiteral = exports.handleObjectEnum = exports.handleEnum = exports.mutableAddProp = exports.handleInterface = exports.handleType = exports.getFnFromProps = void 0;
-const path_1 = __importDefault(require("path"));
 const typescript_1 = __importDefault(require("typescript"));
 const immer_1 = __importDefault(require("immer"));
 const tsnode_1 = require("./tsnode");
@@ -58,6 +57,10 @@ function mutableAddProp(draft, fnName, propName, typeNode, isOptional) {
     const set = (p) => {
         draft.componentsMap[fnName].props[propName] = Object.assign(Object.assign({}, p), { name: propName, isOptional });
     };
+    if (propName === 'children') {
+        draft.componentsMap[fnName].hasChildren = true;
+        return;
+    }
     const { kind } = typeNode;
     // TODO: for optional args, use default value if present (prop.intializer)
     switch (kind) {
@@ -110,7 +113,7 @@ function mutableAddProp(draft, fnName, propName, typeNode, isOptional) {
             }
             else if (draft.importsMap[enumName]) {
                 // TODO: defaultValue / argType here
-                const fullImportPath = path_1.default.resolve(path_1.default.dirname(draft.inputFilePath), draft.importsMap[enumName]);
+                const fullImportPath = (0, utils_1.getFullPath)(draft.inputFilePath, draft.importsMap[enumName]);
                 const sourceFile = (0, tsnode_1.getSourceFile)(fullImportPath);
                 sourceFile === null || sourceFile === void 0 ? void 0 : sourceFile.statements.forEach(statement => {
                     switch (statement.kind) {
@@ -282,7 +285,7 @@ function mutableAddPropBinding(draft, fnName, bind) {
                 const enumName = (0, tsnode_1.getName)(token);
                 if (draft.enumsMap[enumName]) {
                     if (!draft.importsUsed[enumName]) {
-                        const path = draft.importsMap[enumName] || `./${fnName}`;
+                        const path = draft.importsMap[enumName] || `./${(0, utils_1.getFileName)(draft.inputFilePath)}`;
                         draft.importsUsed[enumName] = path;
                     }
                     if (!((_a = draft.componentsMap[fnName].props[propName]) === null || _a === void 0 ? void 0 : _a.argType)) {
