@@ -38,6 +38,7 @@ export type ExampleInputProps = {
   labelString: string | null
   minValue?: -100 | 0 | 100
   maxValue?: number
+  onChange: (updatedValue: number) => void
   roundToNearest?: "none" | "ten" | "hundred"
   startingValue?: number | string
 }
@@ -51,6 +52,7 @@ export function ExampleInput({
   labelString,
   minValue,
   maxValue = MAX_VALUE,
+  onChange,
   roundToNearest = "none",
   startingValue = 0,
 }: ExampleInputProps) {
@@ -75,7 +77,10 @@ export function ExampleInput({
           type="text"
           defaultValue={startingValue}
           onBlur={onBlur}
-          onChange={({target}) => setValue(target.value)}
+          onChange={({target}) => {
+            setValue(target.value)
+            onChange(target.value)
+          }}
           style={{fontSize, fontWeight}}
           value={value}
         />

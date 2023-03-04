@@ -33,10 +33,11 @@ npm test -- -u # update snapshots
 
 ##### TODO:
 - Indexed access of pseudo-enum object constants
+- Function props
 - Parsing plain JS in addition to TypeScript
 - Multiple files and directories on CLI
 - Settings for control prefences (`select` vs `radio`, etc)
 - More unit test coverage
 
 ##### TODONT:
-- Not looking to add custom formatting; BYO linter/formatter.
+- Not planning to add custom code formatting; BYO linter/formatter.

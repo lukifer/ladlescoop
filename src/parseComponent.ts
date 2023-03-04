@@ -121,6 +121,9 @@ export function mutableAddProp(
       return set({kind, type: "string", defaultValue: "''"})
     case ts.SyntaxKind.NumberKeyword:
       return set({kind, type: "number", defaultValue: "0"})
+    case ts.SyntaxKind.FunctionType:
+      // TODO
+      return
     case ts.SyntaxKind.TypeReference:
       if (!ts.isTypeReferenceNode(typeNode)) break
       const enumName = typeNode.getText()
@@ -278,7 +281,7 @@ export function handleFunction(
     if (!isExported(fn)) warn(`Warning: Component ${fnName} is not exported`)
     draft.componentsMap[fnName] = {
       ...draft.componentsMap[fnName],
-      isDefaultExport: !!fn.modifiers?.some(ts.isDefaultClause),
+      isDefaultExport: !!fn.modifiers?.some(m => m?.kind === ts.SyntaxKind.DefaultKeyword),
       hasFunction: true
     }
 
@@ -306,9 +309,9 @@ export function mutableAddPropBinding(
     }
     if (bind.getChildCount() === 1) {
       const prop = draft.componentsMap[fnName].props[propName]
-      if (prop.kind === ts.SyntaxKind.NumberKeyword)
+      if (prop?.kind === ts.SyntaxKind.NumberKeyword)
         return set("0")
-      else if (prop.kind === ts.SyntaxKind.StringKeyword)
+      else if (prop?.kind === ts.SyntaxKind.StringKeyword)
         return set("''")
     }
     switch (token.kind) {
