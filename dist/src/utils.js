@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nope = exports.warn = exports.indentLines = exports.indent = exports.getFullPath = exports.getFileName = exports.fileExists = exports.newEmptyState = void 0;
+exports.nope = exports.echo = exports.warn = exports.indentLines = exports.indent = exports.getFileDir = exports.getFullPath = exports.getFileName = exports.fileExists = exports.newEmptyComponent = exports.newEmptyState = void 0;
 const fs_1 = require("fs");
 const path_1 = __importDefault(require("path"));
 function newEmptyState(inputFilePath = "", propsFormat) {
@@ -11,12 +11,18 @@ function newEmptyState(inputFilePath = "", propsFormat) {
         componentsMap: {},
         enumsMap: {},
         importsMap: {},
-        importsUsed: {},
         inputFilePath,
         propsFormat: propsFormat || '{Component}Props',
     };
 }
 exports.newEmptyState = newEmptyState;
+function newEmptyComponent() {
+    return {
+        props: {},
+        importsUsed: {},
+    };
+}
+exports.newEmptyComponent = newEmptyComponent;
 // Utility funcs
 function fileExists(filePath) {
     let exists = false;
@@ -35,10 +41,14 @@ function getFileName(filePath, withExtension = false) {
     return inputFileName.replace(/\.tsx?$/, '');
 }
 exports.getFileName = getFileName;
-function getFullPath(inputFilePath, relativePath) {
-    return path_1.default.resolve(path_1.default.dirname(inputFilePath), relativePath);
+function getFullPath(filePath, relativePath) {
+    return path_1.default.resolve(path_1.default.dirname(filePath), relativePath);
 }
 exports.getFullPath = getFullPath;
+function getFileDir(filePath) {
+    return filePath.replace(/^(.+)\/[^/]+$/, "$1/");
+}
+exports.getFileDir = getFileDir;
 function indent(str, ct = 1) {
     const spaces = [...new Array(ct)].fill("  ").join("");
     return `${spaces}${str}`;
@@ -52,6 +62,10 @@ function warn(msg) {
     console.log(msg);
 }
 exports.warn = warn;
+function echo(msg) {
+    console.log(msg);
+}
+exports.echo = echo;
 function nope(errorStr = "") {
     if (errorStr)
         console.error(errorStr);

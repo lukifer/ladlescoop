@@ -38,20 +38,19 @@ function run() {
     program.option("--propsformat <value>", "Props naming format, such as '{Component}PropType'", "{Component}Props");
     program.option("--wrap <value>", "DOM wrapping: 'MockProvider(mocks=[]),div(className=\"foo\"|id=\"bar\")'", "div");
     program.parse(process.argv);
-    const inputFilePath = program.args[0];
+    let inputFilePath = program.args[0];
     if (!inputFilePath) {
         (0, utils_1.nope)("Error: missing file path argument");
     }
     if (!inputFilePath.match(/\.tsx?$/)) {
         (0, utils_1.nope)("Only TypeScript currently supported");
     }
+    if ((0, utils_1.getFileDir)(inputFilePath) === inputFilePath) {
+        inputFilePath = `./${inputFilePath}`;
+    }
     const filesWritten = [];
     function createStoryForFile(filePath) {
-        const dirPath = filePath.replace(/^(.+)\/[^/]+$/, "$1/");
-        if (!dirPath || dirPath === filePath) {
-            (0, utils_1.warn)("Only relative paths supported: use './myFile.ts', not 'myFile.ts'");
-            return;
-        }
+        const dirPath = (0, utils_1.getFileDir)(filePath);
         const sourceFile = (0, tsnode_1.getSourceFile)(filePath);
         if (!sourceFile)
             (0, utils_1.nope)(`An error occurred reading "${filePath}"`);
@@ -98,10 +97,11 @@ function run() {
                 (0, utils_1.warn)(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`);
                 return;
             }
-            const { hasChildren, hasFunction, isDefaultExport, props } = state.componentsMap[componentName];
-            if (!props || !hasFunction)
+            const { hasChildren, hasFunction, importsUsed, isDefaultExport, props, } = state.componentsMap[componentName];
+            if (!hasFunction)
                 return;
-            const { importsUsed } = state;
+            if (!props && componentName !== (0, utils_1.getFileName)(filePath))
+                return;
             const renderedStory = (0, storyTemplate_1.renderStory)({
                 componentName,
                 hasChildren,
@@ -125,10 +125,10 @@ function run() {
     createStoryForFile(inputFilePath);
     if (filesWritten.length) {
         const plur = filesWritten.length > 1 ? 's' : '';
-        console.log(`Wrote the following file${plur}: \n${filesWritten.join('\n')}`);
+        (0, utils_1.echo)(`Wrote the following file${plur}: \n${filesWritten.join('\n')}`);
     }
     else {
-        console.log("No files written.");
+        (0, utils_1.echo)("No files written.");
     }
 }
 exports.run = run;

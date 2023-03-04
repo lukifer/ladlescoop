@@ -52,7 +52,7 @@ function handleInterface(state, interfaceDeclaration) {
 exports.handleInterface = handleInterface;
 function mutableAddProp(draft, fnName, propName, typeNode, isOptional) {
     if (!draft.componentsMap[fnName]) {
-        draft.componentsMap[fnName] = { props: {} };
+        draft.componentsMap[fnName] = (0, utils_1.newEmptyComponent)();
     }
     const set = (p) => {
         draft.componentsMap[fnName].props[propName] = Object.assign(Object.assign({}, p), { name: propName, isOptional });
@@ -232,13 +232,14 @@ function extractObjectEnumValues(objectLiteral) {
 exports.extractObjectEnumValues = extractObjectEnumValues;
 function handleFunction(state, fn) {
     const fnName = (0, tsnode_1.getName)(fn);
-    if (!/^([A-Z][a-zA-Z0-9_]+)/.test(fnName) || !state.componentsMap[fnName])
-        return state;
+    if (!/^([A-Z][a-zA-Z0-9_]+)/.test(fnName))
+        if (!state.componentsMap[fnName] && fnName !== (0, utils_1.getFileName)(state.inputFilePath))
+            return state;
     return (0, immer_1.default)(state, draft => {
         var _a;
         if (!(0, tsnode_1.isExported)(fn))
             (0, utils_1.warn)(`Warning: Component ${fnName} is not exported`);
-        draft.componentsMap[fnName] = Object.assign(Object.assign({}, draft.componentsMap[fnName]), { isDefaultExport: !!((_a = fn.modifiers) === null || _a === void 0 ? void 0 : _a.some(m => (m === null || m === void 0 ? void 0 : m.kind) === typescript_1.default.SyntaxKind.DefaultKeyword)), hasFunction: true });
+        draft.componentsMap[fnName] = Object.assign(Object.assign({}, (draft.componentsMap[fnName] || (0, utils_1.newEmptyComponent)())), { isDefaultExport: !!((_a = fn.modifiers) === null || _a === void 0 ? void 0 : _a.some(m => (m === null || m === void 0 ? void 0 : m.kind) === typescript_1.default.SyntaxKind.DefaultKeyword)), hasFunction: true });
         const propsParam = (0, tsnode_1.getFirstOfKind)(fn, typescript_1.default.SyntaxKind.Parameter);
         const objectBinding = (0, tsnode_1.getFirstOfKind)(propsParam, typescript_1.default.SyntaxKind.ObjectBindingPattern);
         (0, tsnode_1.getChildrenOfKind)(objectBinding, [typescript_1.default.SyntaxKind.BindingElement]).forEach((bind) => {
@@ -284,9 +285,9 @@ function mutableAddPropBinding(draft, fnName, bind) {
                     return;
                 const enumName = (0, tsnode_1.getName)(token);
                 if (draft.enumsMap[enumName]) {
-                    if (!draft.importsUsed[enumName]) {
+                    if (!draft.componentsMap[fnName].importsUsed[enumName]) {
                         const path = draft.importsMap[enumName] || `./${(0, utils_1.getFileName)(draft.inputFilePath)}`;
-                        draft.importsUsed[enumName] = path;
+                        draft.componentsMap[fnName].importsUsed[enumName] = path;
                     }
                     if (!((_a = draft.componentsMap[fnName].props[propName]) === null || _a === void 0 ? void 0 : _a.argType)) {
                         const enumKeys = Object.keys(draft.enumsMap[enumName]);
