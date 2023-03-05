@@ -55,12 +55,10 @@ ${storyName}.args = {${defaultValues.map(([key, defaultValue]) => `
 
 ${storyName}.argTypes = {
 ${(0, utils_1.indentLines)(Object.entries(argTypes).map(([key, argType]) => `${key}: {
-  control: {
-    type: "${argType.control.type}",
-  },
+${argType.control ? `  control: {type: "${argType.control.type}"},` : ''}${argType.action ? `  action: "${argType.action}",` : ''}${argType.options ? `
   options: [
 ${(0, utils_1.indentLines)([...argType.options], 2).join(",\n")}
-  ],
+  ],` : ''}
 }`)).join(",\n")}
 }`);
 }

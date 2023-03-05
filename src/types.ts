@@ -39,7 +39,8 @@ export type DeepReadonly<T> =
   T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } :
   T;
 
-export type ArgType = Pick<LadleArgType<string | number>, 'control' | 'defaultValue' | 'name'> & {
+type LadleArgTypeKeys = 'action' | 'control' | 'defaultValue' | 'name'
+export type ArgType = Pick<LadleArgType<string | number>, LadleArgTypeKeys> & {
   // This options type appears to be incorrect in Ladle
   options?: LadleArgType['control']['options']
 }

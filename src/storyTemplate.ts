@@ -86,12 +86,12 @@ ${storyName}.args = {${defaultValues.map(([key, defaultValue]) => `
 ${storyName}.argTypes = {
 ${indentLines(Object.entries<DeepReadonly<ArgType>>(argTypes).map(([key, argType]) =>
 `${key}: {
-  control: {
-    type: "${argType.control.type}",
-  },
+${argType.control ? `  control: {type: "${argType.control.type}"},` : ''
+}${argType.action ? `  action: "${argType.action}",` : ''
+}${argType.options ? `
   options: [
 ${indentLines([...argType.options], 2).join(",\n")}
-  ],
+  ],` : ''}
 }`)).join(",\n")}
 }`
   )

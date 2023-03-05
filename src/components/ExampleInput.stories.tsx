@@ -14,6 +14,7 @@ export const ExampleInputStory: Story<{
   labelString: string | null
   minValue?: -100 | 0 | 100
   maxValue?: number
+  onChange: (updatedValue: string) => void
   roundToNearest?: "none" | "ten" | "hundred"
   startingValue?: number | string
 }> = ({
@@ -25,6 +26,7 @@ export const ExampleInputStory: Story<{
   labelString,
   minValue,
   maxValue,
+  onChange,
   roundToNearest,
   startingValue
 }) => {
@@ -40,6 +42,7 @@ export const ExampleInputStory: Story<{
         labelString={labelString}
         minValue={minValue}
         maxValue={maxValue}
+        onChange={onChange}
         roundToNearest={roundToNearest}
         startingValue={startingValue}
       >
@@ -63,9 +66,7 @@ ExampleInputStory.args = {
 
 ExampleInputStory.argTypes = {
   fontSize: {
-    control: {
-      type: "select",
-    },
+    control: {type: "select"},
     options: [
       FontSize.small,
       FontSize.medium,
@@ -73,9 +74,7 @@ ExampleInputStory.argTypes = {
     ],
   },
   fontSizeLabel: {
-    control: {
-      type: "select",
-    },
+    control: {type: "select"},
     options: [
       ExportedFontSize.small,
       ExportedFontSize.medium,
@@ -83,37 +82,32 @@ ExampleInputStory.argTypes = {
     ],
   },
   fontWeight: {
-    control: {
-      type: "radio",
-    },
+    control: {type: "radio"},
     options: [
       FontWeightObj.normal,
       FontWeightObj.bold
     ],
   },
   fontWeightLabel: {
-    control: {
-      type: "radio",
-    },
+    control: {type: "radio"},
     options: [
       ExportedFontWeightObj.normal,
       ExportedFontWeightObj.bold
     ],
   },
   minValue: {
-    control: {
-      type: "select",
-    },
+    control: {type: "select"},
     options: [
       -100,
       0,
       100
     ],
   },
+  onChange: {
+    action: "onChange",
+  },
   roundToNearest: {
-    control: {
-      type: "select",
-    },
+    control: {type: "select"},
     options: [
       "none",
       "ten",

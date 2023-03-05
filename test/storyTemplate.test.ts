@@ -84,9 +84,7 @@ export const TacoStory: Story<{
 
 TacoStory.argTypes = {
   toppings: {
-    control: {
-      type: "select",
-    },
+    control: {type: "select"},
     options: [
       'Tomatoes',
       'Onions',
@@ -94,9 +92,7 @@ TacoStory.argTypes = {
     ],
   },
   cheese: {
-    control: {
-      type: "radio",
-    },
+    control: {type: "radio"},
     options: [
       Cheese.None,
       Cheese.ThreeCheeseBlend

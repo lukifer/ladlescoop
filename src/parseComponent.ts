@@ -131,8 +131,11 @@ export function mutableAddProp(
     case ts.SyntaxKind.NumberKeyword:
       return set({kind, type: "number", defaultValue: "0"})
     case ts.SyntaxKind.FunctionType:
-      // TODO
-      return
+      return set({
+        kind,
+        type: typeNode.getText(),
+        argType: {action: propName},
+      })
     case ts.SyntaxKind.TypeReference:
       if (!ts.isTypeReferenceNode(typeNode)) break
       const enumName = typeNode.getText()

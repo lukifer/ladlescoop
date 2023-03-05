@@ -100,8 +100,11 @@ function mutableAddProp(draft, fnName, propName, typeNode, isOptional) {
         case typescript_1.default.SyntaxKind.NumberKeyword:
             return set({ kind, type: "number", defaultValue: "0" });
         case typescript_1.default.SyntaxKind.FunctionType:
-            // TODO
-            return;
+            return set({
+                kind,
+                type: typeNode.getText(),
+                argType: { action: propName },
+            });
         case typescript_1.default.SyntaxKind.TypeReference:
             if (!typescript_1.default.isTypeReferenceNode(typeNode))
                 break;

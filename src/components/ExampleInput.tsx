@@ -39,7 +39,7 @@ export type ExampleInputProps = {
   labelString: string | null
   minValue?: -100 | 0 | 100
   maxValue?: number
-  onChange: (updatedValue: number) => void
+  onChange: (updatedValue: string) => void
   roundToNearest?: "none" | "ten" | "hundred"
   startingValue?: number | string
 }
