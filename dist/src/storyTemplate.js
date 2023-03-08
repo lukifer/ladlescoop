@@ -4,13 +4,13 @@ exports.renderDomTree = exports.unpackWrap = exports.renderStory = void 0;
 const utils_1 = require("./utils");
 function renderStory({ componentName, hasChildren, importsUsed, inputFilePath, isDefaultExport, props = {}, wrap = 'div', }) {
     const storyName = `${componentName}Story`;
-    const defaultValues = Object.keys(props).reduce((out, k) => {
+    const defaultValues = (0, utils_1.sortedKeys)(props).reduce((out, k) => {
         const { defaultValue } = props[k];
         if (defaultValue === undefined)
             return out;
         return [...out, [k, defaultValue]];
     }, []);
-    const argTypes = Object.keys(props).reduce((out, k) => {
+    const argTypes = (0, utils_1.sortedKeys)(props).reduce((out, k) => {
         const { argType } = props[k];
         if (!argType)
             return out;
@@ -25,7 +25,7 @@ function renderStory({ componentName, hasChildren, importsUsed, inputFilePath, i
         return map;
     }, {});
     const domNodes = unpackWrap(wrap);
-    domNodes.push([componentName, Object.keys(props).map(p => [p, p])]);
+    domNodes.push([componentName, (0, utils_1.sortedKeys)(props).map(p => [p, p])]);
     if (hasChildren)
         domNodes.push(['div']);
     // console.log({domNodes})
@@ -39,10 +39,10 @@ import type {Story} from "@ladle/react"
 import ${isDefaultExport ? componentName : `{${componentName}}`} from "./${inputFileName}"
 ${Object.keys(importsByFile).map(path => `import {${importsByFile[path].join(', ')}} from "${path}"`).join("\n")}
 
-export const ${storyName}: Story<{${Object.keys(props).map(p => `
+export const ${storyName}: Story<{${(0, utils_1.sortedKeys)(props).map(p => `
   ${p}${props[p].isOptional ? "?" : ""}: ${props[p].type}`).join("")}
 }> = ({
-  ${Object.keys(props).join(",\n  ")}
+  ${(0, utils_1.sortedKeys)(props).join(",\n  ")}
 }) => {
   return (
 ${renderDomTree(componentName, domNodes, 2)}
@@ -54,7 +54,7 @@ ${storyName}.args = {${defaultValues.map(([key, defaultValue]) => `
 }` : ''}
 
 ${storyName}.argTypes = {
-${(0, utils_1.indentLines)(Object.entries(argTypes).map(([key, argType]) => `${key}: {
+${(0, utils_1.indentLines)((0, utils_1.sortedEntries)(argTypes).map(([key, argType]) => `${key}: {
 ${argType.control ? `  control: {type: "${argType.control.type}"},` : ''}${argType.action ? `  action: "${argType.action}",` : ''}${argType.options ? `
   options: [
 ${(0, utils_1.indentLines)([...argType.options], 2).join(",\n")}

@@ -54,25 +54,25 @@ import {Taco} from "./Tacos"
 import {Cheese, Salsa} from "./Tacos"
 
 export const TacoStory: Story<{
-  children?: React.ReactNode
-  toppings: string[]
   cheese: Cheese
+  children?: React.ReactNode
   softShell?: boolean
+  toppings: string[]
 }> = ({
-  children,
-  toppings,
   cheese,
-  softShell
+  children,
+  softShell,
+  toppings
 }) => {
   return (
     <div className={'wrap'}>
       <MyProvider>
         <h3>Taco</h3>
         <Taco
-          children={children}
-          toppings={toppings}
           cheese={cheese}
+          children={children}
           softShell={softShell}
+          toppings={toppings}
         >
           <div />
         </Taco>
@@ -83,19 +83,19 @@ export const TacoStory: Story<{
 
 
 TacoStory.argTypes = {
+  cheese: {
+    control: {type: "radio"},
+    options: [
+      Cheese.None,
+      Cheese.ThreeCheeseBlend
+    ],
+  },
   toppings: {
     control: {type: "select"},
     options: [
       'Tomatoes',
       'Onions',
       'Sour Cream'
-    ],
-  },
-  cheese: {
-    control: {type: "radio"},
-    options: [
-      Cheese.None,
-      Cheese.ThreeCheeseBlend
     ],
   }
 }"

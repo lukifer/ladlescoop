@@ -2,11 +2,12 @@ import React from "react"
 import type {Story} from "@ladle/react"
 
 import {ExampleInput} from "./ExampleInput"
-import {FontSize, FontWeightObj} from "./ExampleInput"
+import {Complex, FontSize, FontWeightObj} from "./ExampleInput"
 import {ExportedFontSize, ExportedFontWeightObj} from "../types"
 
 export const ExampleInputStory: Story<{
   allowNegative?: boolean
+  complex: Complex
   fontSize?: FontSize
   fontSizeLabel?: ExportedFontSize
   fontWeight?: string
@@ -19,6 +20,7 @@ export const ExampleInputStory: Story<{
   startingValue?: number | string
 }> = ({
   allowNegative,
+  complex,
   fontSize,
   fontSizeLabel,
   fontWeight,
@@ -35,6 +37,7 @@ export const ExampleInputStory: Story<{
       <h3>ExampleInput</h3>
       <ExampleInput
         allowNegative={allowNegative}
+        complex={complex}
         fontSize={fontSize}
         fontSizeLabel={fontSizeLabel}
         fontWeight={fontWeight}
@@ -54,6 +57,7 @@ export const ExampleInputStory: Story<{
 
 ExampleInputStory.args = {
   allowNegative: true,
+  complex: '{"a":0,"b":"","c":{"d":[],"e":[]}}',
   fontSize: FontSize.medium,
   fontSizeLabel: ExportedFontSize.medium,
   fontWeight: FontWeightObj.normal,

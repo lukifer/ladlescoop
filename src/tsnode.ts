@@ -3,6 +3,27 @@ import {readFileSync} from "fs"
 
 import {fileExists} from "./utils"
 
+const keysToTypeGuards = {
+  [ts.SyntaxKind.AsExpression]: ts.isAsExpression,
+  [ts.SyntaxKind.EnumDeclaration]: ts.isEnumDeclaration,
+  [ts.SyntaxKind.Identifier]: ts.isIdentifier,
+  [ts.SyntaxKind.LiteralType]: ts.isLiteralTypeNode,
+  [ts.SyntaxKind.NullKeyword]: (x: ts.Node): x is ts.NullLiteral => x.kind === 104,
+  [ts.SyntaxKind.NumericLiteral]: ts.isNumericLiteral,
+  [ts.SyntaxKind.ObjectBindingPattern]: ts.isObjectBindingPattern,
+  [ts.SyntaxKind.ObjectLiteralExpression]: ts.isObjectLiteralExpression,
+  [ts.SyntaxKind.Parameter]: ts.isParameter,
+  [ts.SyntaxKind.PropertySignature]: ts.isPropertySignature,
+  [ts.SyntaxKind.StringLiteral]: ts.isStringLiteral,
+  [ts.SyntaxKind.TypeLiteral]: ts.isTypeLiteralNode,
+  [ts.SyntaxKind.TypeReference]: ts.isTypeReferenceNode,
+  [ts.SyntaxKind.UnionType]: ts.isUnionTypeNode,
+  [ts.SyntaxKind.VariableDeclaration]: ts.isVariableDeclaration,
+  [ts.SyntaxKind.VariableDeclarationList]: ts.isVariableDeclarationList,
+} as const
+
+export type SyntaxKind = keyof typeof keysToTypeGuards
+
 export function getChildrenOfKind(
   el: ts.Node,
   kinds: ts.SyntaxKind[]
@@ -16,22 +37,26 @@ export function getChildrenOfKind(
 
 export function getNthOfKind(
   el: ts.Node,
-  kind: ts.SyntaxKind | ts.SyntaxKind[],
+  kind: SyntaxKind | SyntaxKind[],
   n: number
 ): ts.Node | undefined {
-  return getChildrenOfKind(el, typeof kind === 'number' ? [kind] : kind)[n]
+  const nth = getChildrenOfKind(el, typeof kind === 'number' ? [kind] : kind)[n]
+  if (typeof kind !== 'number')
+    return nth
+  return nth && typedTsNode(nth, kind)
 }
 
-export function getFirstOfKind(
+export function getFirstOfKind<T extends SyntaxKind>(
   el: ts.Node,
-  kind: ts.SyntaxKind | ts.SyntaxKind[]
-): ts.Node | undefined {
-  return getNthOfKind(el, typeof kind === 'number' ? [kind] : kind, 0)
+  kind: T,
+) {
+  const first = getNthOfKind(el, kind, 0)
+  return first && typedTsNode(first, kind)
 }
 
 export function getName(el: ts.Node, n = 0) {
   const identifier = getNthOfKind(el, ts.SyntaxKind.Identifier, n)
-  if (!ts.isIdentifier(identifier)) return ''
+  if (!identifier || !ts.isIdentifier(identifier)) return ''
   return identifier.escapedText || ''
 }
 
@@ -62,8 +87,21 @@ export function isExported(el: ts.Node) {
   return !!(el.modifiers?.some(m => m?.kind === ts.SyntaxKind.ExportKeyword))
 }
 
-const sourceFileCache: Record<string, ts.SourceFile> = {}
+export function typedTsNode<K extends keyof typeof keysToTypeGuards>(
+  val: ts.Node,
+  key: K,
+): typeof keysToTypeGuards[K] extends (x: unknown) => x is infer R ? R : unknown {
+  const typeGuard = keysToTypeGuards[key]
+  if(!val) console.log({key})
+  if (typeGuard && typeGuard(val)) {
+    return val as typeof keysToTypeGuards[K] extends (x: unknown) => x is infer R ? R : unknown
+  } else {
+    return null
+    // throw new Error(`Value does not match type guard for key "${key}"`)
+  }
+}
 
+const sourceFileCache: Record<string, ts.SourceFile> = {}
 export function getSourceFile(filePath: string): ts.SourceFile | null {
   if (!sourceFileCache[filePath]) {
     if (!/\.tsx?$/.test(filePath)) {
@@ -83,4 +121,45 @@ export function getSourceFile(filePath: string): ts.SourceFile | null {
     )
   }
   return sourceFileCache[filePath]
+}
+
+export function generateDefaultObject(
+  node: ts.TypeAliasDeclaration | ts.PropertySignature
+): unknown {
+  const typeNode = node.type
+  switch (typeNode.kind) {
+    case ts.SyntaxKind.StringKeyword:
+      return ""
+    case ts.SyntaxKind.NumberKeyword:
+      return 0
+    case ts.SyntaxKind.ArrayType:
+      return []
+    case ts.SyntaxKind.TypeReference:
+      return getName(typeNode) === 'Array' ? [] : undefined
+    // case ts.SyntaxKind.FunctionType:
+    //   return () => {}
+    case ts.SyntaxKind.TypeLiteral:
+      if (!ts.isTypeLiteralNode(typeNode)) return undefined
+      return typeNode.members.reduce<Record<string, unknown>>((obj, propSig: ts.PropertySignature) => {
+        const val = generateDefaultObject(propSig)
+        if (val === undefined) return obj
+        return {...obj, [propSig.name.getText()]: val}
+      }, {})
+    // default:
+      // throw new Error(`Unsupported type kind: ${ts.SyntaxKind[typeNode.kind]}`)
+  }
+}
+
+export function generateDefaultObjectFromInterface(interfaceDecl: ts.InterfaceDeclaration): unknown {
+  const obj: Record<string, unknown> = {}
+  interfaceDecl.members.forEach(member => {
+    if (ts.isPropertySignature(member)) {
+      const propName = member.name.getText()
+      const propType = member.type!
+      if (ts.isTypeAliasDeclaration(propType)) {
+        obj[propName] = generateDefaultObject(propType)
+      }
+    }
+  })
+  return obj
 }

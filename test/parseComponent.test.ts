@@ -2,7 +2,7 @@ import * as ts from "typescript"
 
 import {
   extractObjectEnumValues,
-  getFnFromProps,
+  getComponentNameFromProps,
   handleEnum,
   handleInterface,
   handleType,
@@ -17,7 +17,7 @@ const emptyState = newEmptyState()
 
 describe("parseComponent", () => {
   it("parses props from format", () => {
-    const componentName = getFnFromProps("My{Component}Props", "MyTacoProps")
+    const componentName = getComponentNameFromProps("My{Component}Props", "MyTacoProps")
     expect(componentName).toMatch("Taco")
   })
 

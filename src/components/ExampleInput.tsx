@@ -28,9 +28,25 @@ export type IgnoreMeProps = {
   nothing: null
 }
 
+export type Complex = {
+  a: number
+  b: string
+  c: {
+    d: Array<{
+      dd: 1
+    }>
+    e: {
+      ee: 'a'
+    }[]
+    f: string | null
+  }
+  g: () => void
+}
+
 export type ExampleInputProps = {
   allowNegative?: boolean
   children?: React.ReactNode
+  complex: Complex
   fontSize?: FontSize
   fontSizeLabel?: ExportedFontSize
   // fontWeight?: typeof FontSizeObj[keyof typeof FontSizeObj] // TODO

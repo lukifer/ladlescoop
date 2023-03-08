@@ -6,6 +6,8 @@ import {
   Prop,
 } from "./types"
 import {
+  sortedEntries,
+  sortedKeys,
   getFileName,
   indentLines,
 } from "./utils"
@@ -30,12 +32,12 @@ export function renderStory({
   wrap = 'div',
 }: StoryRenderOptions) {
   const storyName = `${componentName}Story`
-  const defaultValues = Object.keys(props).reduce<Array<[string, string]>>((out, k) => {
+  const defaultValues = sortedKeys(props).reduce<Array<[string, string]>>((out, k) => {
     const {defaultValue} = props[k]
     if (defaultValue === undefined) return out
     return [...out, [k, defaultValue]]
   }, [])
-  const argTypes = Object.keys(props).reduce<ArgTypesMap>((out, k) => {
+  const argTypes = sortedKeys(props).reduce<ArgTypesMap>((out, k) => {
     const {argType} = props[k]
     if (!argType) return out
     return {
@@ -54,7 +56,7 @@ export function renderStory({
   }, {})
 
   const domNodes = unpackWrap(wrap)
-  domNodes.push([componentName, Object.keys(props).map(p => [p, p])])
+  domNodes.push([componentName, sortedKeys(props).map(p => [p, p])])
   if (hasChildren) domNodes.push(['div'])
   // console.log({domNodes})
   // console.log({wrap})
@@ -69,10 +71,10 @@ import ${isDefaultExport ? componentName : `{${componentName}}`} from "./${input
 ${Object.keys(importsByFile).map(path =>
 `import {${importsByFile[path].join(', ')}} from "${path}"`).join("\n")}
 
-export const ${storyName}: Story<{${Object.keys(props).map(p => `
+export const ${storyName}: Story<{${sortedKeys(props).map(p => `
   ${p}${props[p].isOptional ? "?" : ""}: ${props[p].type}`).join("")}
 }> = ({
-  ${Object.keys(props).join(",\n  ")}
+  ${sortedKeys(props).join(",\n  ")}
 }) => {
   return (
 ${renderDomTree(componentName, domNodes, 2)}
@@ -84,7 +86,7 @@ ${storyName}.args = {${defaultValues.map(([key, defaultValue]) => `
 }` : ''}
 
 ${storyName}.argTypes = {
-${indentLines(Object.entries<DeepReadonly<ArgType>>(argTypes).map(([key, argType]) =>
+${indentLines(sortedEntries<DeepReadonly<ArgType>>(argTypes).map(([key, argType]) =>
 `${key}: {
 ${argType.control ? `  control: {type: "${argType.control.type}"},` : ''
 }${argType.action ? `  action: "${argType.action}",` : ''

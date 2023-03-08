@@ -101,6 +101,7 @@ export function run(): void {
       } = state.componentsMap[componentName]
       if (!hasFunction) return
       if (!props && componentName !== getFileName(filePath)) return
+
       const renderedStory = renderStory({
         componentName,
         hasChildren,

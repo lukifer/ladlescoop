@@ -3,62 +3,65 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleImport = exports.createArgType = exports.mutableAddPropBinding = exports.handleFunction = exports.extractObjectEnumValues = exports.extractEnumValues = exports.getObjectEnumLiteral = exports.handleObjectEnum = exports.handleEnum = exports.mutableAddProp = exports.handleInterface = exports.handleType = exports.getFnFromProps = void 0;
+exports.handleImport = exports.createArgType = exports.mutableAddPropBinding = exports.handleFunction = exports.extractObjectEnumValues = exports.extractEnumValues = exports.getObjectEnumLiteral = exports.handleObjectEnum = exports.handleEnum = exports.importEnumsFromFile = exports.mutableAddPropsType = exports.handleInterface = exports.handleType = exports.getComponentNameFromProps = void 0;
 const typescript_1 = __importDefault(require("typescript"));
 const immer_1 = __importDefault(require("immer"));
 const tsnode_1 = require("./tsnode");
 const utils_1 = require("./utils");
-function getFnFromProps(format, propsName) {
+function getComponentNameFromProps(format, propsName) {
     const reg = new RegExp("^" + format.replace("{Component}", "([A-Z][a-zA-Z0-9_]+)") + "$");
     const match = reg.exec(propsName);
     return (match === null || match === void 0 ? void 0 : match.length) && match[1];
 }
-exports.getFnFromProps = getFnFromProps;
+exports.getComponentNameFromProps = getComponentNameFromProps;
 function handleType(state, typeDeclaration) {
     return (0, immer_1.default)(state, draft => {
-        const propsName = (0, tsnode_1.getName)(typeDeclaration);
-        const fnName = getFnFromProps(state.propsFormat, propsName);
-        if (!fnName)
-            return state;
-        const typeLiteral = (0, tsnode_1.getFirstOfKind)(typeDeclaration, typescript_1.default.SyntaxKind.TypeLiteral);
-        if (!typeLiteral || !typescript_1.default.isTypeLiteralNode(typeLiteral))
-            return state;
-        typeLiteral.members.forEach(propSig => {
-            if (!typescript_1.default.isPropertySignature(propSig))
-                return;
-            const propName = (0, tsnode_1.getName)(propSig);
-            mutableAddProp(draft, fnName, propName, propSig.type, !!propSig.questionToken);
-        });
-        return draft;
+        var _a;
+        const typeName = (0, tsnode_1.getName)(typeDeclaration);
+        const componentName = getComponentNameFromProps(state.propsFormat, typeName);
+        if (componentName) {
+            const typeLiteral = (0, tsnode_1.getFirstOfKind)(typeDeclaration, typescript_1.default.SyntaxKind.TypeLiteral);
+            (_a = typeLiteral === null || typeLiteral === void 0 ? void 0 : typeLiteral.members) === null || _a === void 0 ? void 0 : _a.forEach(propSig => {
+                if (!typescript_1.default.isPropertySignature(propSig))
+                    return;
+                const propName = (0, tsnode_1.getName)(propSig);
+                mutableAddPropsType(draft, componentName, propName, propSig.type, !!propSig.questionToken);
+            });
+            return draft;
+        }
+        else { // non-props type
+            draft.complexMap[typeName] = (0, tsnode_1.generateDefaultObject)(typeDeclaration);
+            draft.importsMap[typeName] = `./${(0, utils_1.getFileName)(draft.inputFilePath)}`;
+        }
     });
 }
 exports.handleType = handleType;
 function handleInterface(state, interfaceDeclaration) {
     return (0, immer_1.default)(state, draft => {
         const propsName = (0, tsnode_1.getName)(interfaceDeclaration);
-        const fnName = getFnFromProps(state.propsFormat, propsName);
-        if (!fnName)
+        const componentName = getComponentNameFromProps(state.propsFormat, propsName);
+        if (!componentName)
             return state;
         const propSigs = (0, tsnode_1.getChildrenOfKind)(interfaceDeclaration, [typescript_1.default.SyntaxKind.PropertySignature]);
         propSigs === null || propSigs === void 0 ? void 0 : propSigs.forEach((propSig) => {
             if (!typescript_1.default.isPropertySignature(propSig) || !typescript_1.default.isIdentifier(propSig.name))
                 return;
             const propName = propSig.name.escapedText.toString();
-            mutableAddProp(draft, fnName, propName, propSig.type, !!propSig.questionToken);
+            mutableAddPropsType(draft, componentName, propName, propSig.type, !!propSig.questionToken);
         });
         return draft;
     });
 }
 exports.handleInterface = handleInterface;
-function mutableAddProp(draft, fnName, propName, typeNode, isOptional) {
-    if (!draft.componentsMap[fnName]) {
-        draft.componentsMap[fnName] = (0, utils_1.newEmptyComponent)();
+function mutableAddPropsType(draft, componentName, propName, typeNode, isOptional) {
+    if (!draft.componentsMap[componentName]) {
+        draft.componentsMap[componentName] = (0, utils_1.newEmptyComponent)();
     }
     const set = (p) => {
-        draft.componentsMap[fnName].props[propName] = Object.assign(Object.assign({}, p), { name: propName, isOptional });
+        draft.componentsMap[componentName].props[propName] = Object.assign(Object.assign({}, p), { name: propName, isOptional });
     };
     if (propName === 'children') {
-        draft.componentsMap[fnName].hasChildren = true;
+        draft.componentsMap[componentName].hasChildren = true;
         return;
     }
     const { kind } = typeNode;
@@ -108,41 +111,54 @@ function mutableAddProp(draft, fnName, propName, typeNode, isOptional) {
         case typescript_1.default.SyntaxKind.TypeReference:
             if (!typescript_1.default.isTypeReferenceNode(typeNode))
                 break;
-            const enumName = typeNode.getText();
-            const propSet = { kind, type: enumName };
-            if (!!draft.enumsMap[enumName]) {
-                const enumKeys = Object.keys(draft.enumsMap[enumName]);
-                return set(Object.assign(Object.assign({}, propSet), { argType: createArgType(enumKeys, enumName), defaultValue: `${enumName}.${enumKeys[0]}` }));
+            const typeName = typeNode.getText();
+            const propSet = { kind, type: typeName };
+            if (!!draft.enumsMap[typeName]) {
+                const enumKeys = Object.keys(draft.enumsMap[typeName]);
+                return set(Object.assign(Object.assign({}, propSet), { argType: createArgType(enumKeys, typeName), defaultValue: `${typeName}.${enumKeys[0]}` }));
             }
-            else if (draft.importsMap[enumName]) {
-                // TODO: defaultValue / argType here
-                const fullImportPath = (0, utils_1.getFullPath)(draft.inputFilePath, draft.importsMap[enumName]);
-                const sourceFile = (0, tsnode_1.getSourceFile)(fullImportPath);
-                sourceFile === null || sourceFile === void 0 ? void 0 : sourceFile.statements.forEach(statement => {
-                    switch (statement.kind) {
-                        case typescript_1.default.SyntaxKind.VariableStatement:
-                            const objectEnum = getObjectEnumLiteral(statement);
-                            if (!objectEnum)
-                                break;
-                            const [objName, objectLiteral] = objectEnum;
-                            const objectKVs = extractObjectEnumValues(objectLiteral);
-                            if (Object.keys(objectKVs).length >= 2) {
-                                draft.enumsMap[objName] = objectKVs;
-                            }
-                            break;
-                        case typescript_1.default.SyntaxKind.EnumDeclaration:
-                            const enumName = (0, tsnode_1.getName)(statement);
-                            if (!draft.enumsMap[enumName] && typescript_1.default.isEnumDeclaration(statement)) {
-                                draft.enumsMap[enumName] = extractEnumValues(statement);
-                            }
-                            break;
-                    }
-                });
+            else if (draft.importsMap[typeName]) {
+                // TODO: defaultValue / argType
+                const importPath = draft.importsMap[typeName];
+                if (draft.complexMap[typeName]) {
+                    draft.componentsMap[componentName].importsUsed[typeName] = importPath;
+                    return set(Object.assign(Object.assign({}, propSet), { defaultValue: `${JSON.stringify(draft.complexMap[typeName])}` }));
+                }
+                else {
+                    draft.enumsMap = Object.assign(Object.assign({}, draft.enumsMap), importEnumsFromFile(draft.inputFilePath, importPath));
+                }
             }
             return set(propSet);
     }
 }
-exports.mutableAddProp = mutableAddProp;
+exports.mutableAddPropsType = mutableAddPropsType;
+function importEnumsFromFile(inputFilePath, relativeImportPath) {
+    const fullImportPath = (0, utils_1.getFullPath)(inputFilePath, relativeImportPath);
+    const sourceFile = (0, tsnode_1.getSourceFile)(fullImportPath);
+    const addToEnumsMap = {};
+    sourceFile === null || sourceFile === void 0 ? void 0 : sourceFile.statements.forEach(statement => {
+        switch (statement.kind) {
+            case typescript_1.default.SyntaxKind.VariableStatement:
+                const objectEnum = getObjectEnumLiteral(statement);
+                if (!objectEnum)
+                    break;
+                const [objName, objectLiteral] = objectEnum;
+                const objectKVs = extractObjectEnumValues(objectLiteral);
+                if (Object.keys(objectKVs).length >= 2) {
+                    addToEnumsMap[objName] = objectKVs;
+                }
+                break;
+            case typescript_1.default.SyntaxKind.EnumDeclaration:
+                const enumName = (0, tsnode_1.getName)(statement);
+                if (!typescript_1.default.isEnumDeclaration(statement))
+                    break;
+                addToEnumsMap[enumName] = extractEnumValues(statement);
+                break;
+        }
+    });
+    return addToEnumsMap;
+}
+exports.importEnumsFromFile = importEnumsFromFile;
 function handleEnum(state, enumDec) {
     if (!(0, tsnode_1.isExported)(enumDec))
         return state;
@@ -171,21 +187,10 @@ function handleObjectEnum(state, maybeObjectEnum) {
 exports.handleObjectEnum = handleObjectEnum;
 function getObjectEnumLiteral(maybeObjectEnum) {
     const declarationList = (0, tsnode_1.getFirstOfKind)(maybeObjectEnum, typescript_1.default.SyntaxKind.VariableDeclarationList);
-    if (!typescript_1.default.isVariableDeclarationList(declarationList))
-        return null;
     const varDeclaration = (0, tsnode_1.getFirstOfKind)(declarationList, typescript_1.default.SyntaxKind.VariableDeclaration);
-    if (!typescript_1.default.isVariableDeclaration(varDeclaration))
-        return null;
-    let objectLiteral = (0, tsnode_1.getFirstOfKind)(varDeclaration, [
-        typescript_1.default.SyntaxKind.AsExpression,
-        typescript_1.default.SyntaxKind.ObjectLiteralExpression,
-    ]);
+    const asExpression = (0, tsnode_1.getFirstOfKind)(varDeclaration, typescript_1.default.SyntaxKind.AsExpression);
+    let objectLiteral = (0, tsnode_1.getFirstOfKind)(asExpression || varDeclaration, typescript_1.default.SyntaxKind.ObjectLiteralExpression);
     if (!objectLiteral)
-        return null;
-    if (!typescript_1.default.isObjectLiteralExpression(objectLiteral)) { // TODO: validate "as const"?
-        objectLiteral = (0, tsnode_1.getFirstOfKind)(objectLiteral, typescript_1.default.SyntaxKind.ObjectLiteralExpression);
-    }
-    if (!objectLiteral || !typescript_1.default.isObjectLiteralExpression(objectLiteral))
         return null;
     return [(0, tsnode_1.getName)(varDeclaration), objectLiteral];
 }
@@ -198,11 +203,9 @@ function extractEnumValues(enumDec) {
             : "";
         if (!memberName)
             return rec;
-        const literal = (0, tsnode_1.getFirstOfKind)(member, [
-            typescript_1.default.SyntaxKind.NumericLiteral,
-            typescript_1.default.SyntaxKind.StringLiteral,
-        ]);
-        const valText = literal && (typescript_1.default.isNumericLiteral(literal) || typescript_1.default.isStringLiteral(literal)) && literal.text;
+        const num = (0, tsnode_1.getFirstOfKind)(member, typescript_1.default.SyntaxKind.NumericLiteral);
+        const str = (0, tsnode_1.getFirstOfKind)(member, typescript_1.default.SyntaxKind.StringLiteral);
+        const valText = (num === null || num === void 0 ? void 0 : num.text) || (str === null || str === void 0 ? void 0 : str.text);
         return Object.assign(Object.assign({}, rec), { [memberName]: valText });
     }, {});
 }
@@ -213,11 +216,11 @@ function extractObjectEnumValues(objectLiteral) {
     ]).filter(typescript_1.default.isPropertyAssignment);
     return objectAssignments.reduce((kvs, oa) => {
         const key = (0, tsnode_1.getName)(oa);
-        const val = (0, tsnode_1.getFirstOfKind)(oa, [
+        const val = (0, tsnode_1.getNthOfKind)(oa, [
             typescript_1.default.SyntaxKind.NullKeyword,
             typescript_1.default.SyntaxKind.NumericLiteral,
             typescript_1.default.SyntaxKind.StringLiteral,
-        ]);
+        ], 0);
         if (!val)
             return kvs;
         // TODO FIXME: this throws undefined on the extractObjectEnumValues test
@@ -254,17 +257,17 @@ function handleFunction(state, fn) {
     });
 }
 exports.handleFunction = handleFunction;
-function mutableAddPropBinding(draft, fnName, bind) {
+function mutableAddPropBinding(draft, componentName, bind) {
     const propName = (0, tsnode_1.getName)(bind);
     bind.forEachChild(token => {
         var _a;
         const set = (val) => {
-            if (draft.componentsMap[fnName].props[propName]) {
-                draft.componentsMap[fnName].props[propName].defaultValue = `${val}`;
+            if (draft.componentsMap[componentName].props[propName]) {
+                draft.componentsMap[componentName].props[propName].defaultValue = `${val}`;
             }
         };
         if (bind.getChildCount() === 1) {
-            const prop = draft.componentsMap[fnName].props[propName];
+            const prop = draft.componentsMap[componentName].props[propName];
             if ((prop === null || prop === void 0 ? void 0 : prop.kind) === typescript_1.default.SyntaxKind.NumberKeyword)
                 return set("0");
             else if ((prop === null || prop === void 0 ? void 0 : prop.kind) === typescript_1.default.SyntaxKind.StringKeyword)
@@ -288,13 +291,14 @@ function mutableAddPropBinding(draft, fnName, bind) {
                     return;
                 const enumName = (0, tsnode_1.getName)(token);
                 if (draft.enumsMap[enumName]) {
-                    if (!draft.componentsMap[fnName].importsUsed[enumName]) {
+                    if (!draft.componentsMap[componentName].importsUsed[enumName]) {
                         const path = draft.importsMap[enumName] || `./${(0, utils_1.getFileName)(draft.inputFilePath)}`;
-                        draft.componentsMap[fnName].importsUsed[enumName] = path;
+                        draft.componentsMap[componentName].importsUsed[enumName] = path;
                     }
-                    if (!((_a = draft.componentsMap[fnName].props[propName]) === null || _a === void 0 ? void 0 : _a.argType)) {
+                    if (!((_a = draft.componentsMap[componentName].props[propName]) === null || _a === void 0 ? void 0 : _a.argType)) {
                         const enumKeys = Object.keys(draft.enumsMap[enumName]);
-                        draft.componentsMap[fnName].props[propName].argType = createArgType(enumKeys, enumName);
+                        const argType = createArgType(enumKeys, enumName);
+                        draft.componentsMap[componentName].props[propName] = Object.assign(Object.assign({}, draft.componentsMap[componentName].props[propName]), { argType });
                     }
                 }
                 return set(`${enumName}.${(0, tsnode_1.getName)(token, 1)}`);

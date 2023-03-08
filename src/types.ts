@@ -26,9 +26,12 @@ export type Component = {
   props: Record<string, Prop>
 }
 
+export type EnumsMap = Record<string, Record<string, EnumVal>>
+
 export type State = DeepReadonly<{
+  complexMap: Record<string, unknown>
   componentsMap: Record<string, Component>
-  enumsMap: Record<string, Record<string, EnumVal>>
+  enumsMap: EnumsMap
   importsMap: Record<string, string>
   inputFilePath: string
   propsFormat: string

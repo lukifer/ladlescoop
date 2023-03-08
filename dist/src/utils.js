@@ -3,11 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nope = exports.echo = exports.warn = exports.indentLines = exports.indent = exports.getFileDir = exports.getFullPath = exports.getFileName = exports.fileExists = exports.newEmptyComponent = exports.newEmptyState = void 0;
+exports.nope = exports.echo = exports.warn = exports.sortedKeys = exports.sortedEntries = exports.indentLines = exports.indent = exports.getFileDir = exports.getFullPath = exports.getFileName = exports.fileExists = exports.newEmptyComponent = exports.newEmptyState = void 0;
 const fs_1 = require("fs");
 const path_1 = __importDefault(require("path"));
 function newEmptyState(inputFilePath = "", propsFormat) {
     return {
+        complexMap: {},
         componentsMap: {},
         enumsMap: {},
         importsMap: {},
@@ -58,6 +59,14 @@ function indentLines(str, ct = 1) {
     return str.map(x => x.split("\n").map(x => indent(x, ct)).join(`\n`));
 }
 exports.indentLines = indentLines;
+function sortedEntries(obj) {
+    return [...Object.entries(obj)].sort(([a, _x], [b, _y]) => a.localeCompare(b));
+}
+exports.sortedEntries = sortedEntries;
+function sortedKeys(obj) {
+    return [...Object.keys(obj)].sort((a, b) => a.localeCompare(b));
+}
+exports.sortedKeys = sortedKeys;
 function warn(msg) {
     console.log(msg);
 }

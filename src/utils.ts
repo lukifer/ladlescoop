@@ -5,6 +5,7 @@ import {Component, State} from "./types"
 
 export function newEmptyState(inputFilePath = "", propsFormat?: string): State {
   return {
+    complexMap: {},
     componentsMap: {},
     enumsMap: {},
     importsMap: {},
@@ -51,6 +52,14 @@ export function indent(str: string, ct = 1) {
 
 export function indentLines(str: string[], ct = 1) {
   return str.map(x => x.split("\n").map(x => indent(x, ct)).join(`\n`))
+}
+
+export function sortedEntries<T = unknown>(obj: Record<string, T>) {
+  return [...Object.entries<T>(obj)].sort(([a, _x], [b, _y]) => a.localeCompare(b))
+}
+
+export function sortedKeys(obj: Record<string, unknown>) {
+  return [...Object.keys(obj)].sort((a, b) => a.localeCompare(b))
 }
 
 export function warn(msg: string) {
