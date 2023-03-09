@@ -32,11 +32,8 @@ npm test -- -u # update snapshots
 ```
 
 ##### TODO:
-- Indexed access of pseudo-enum object constants
 - JSX props
 - Custom types imports
-- multi-select control for array of enums/object-enums
-- Arrow-function components
 - Props destructuring within render function
 - Parsing plain JS in addition to TypeScript
 - Multiple files and directories on CLI

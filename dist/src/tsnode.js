@@ -87,9 +87,9 @@ function getIndexedAccessType(indexedType) {
     return null;
 }
 exports.getIndexedAccessType = getIndexedAccessType;
-function isExported(el) {
+function isExported(node) {
     var _a;
-    return !!((_a = el.modifiers) === null || _a === void 0 ? void 0 : _a.some(m => (m === null || m === void 0 ? void 0 : m.kind) === typescript_1.default.SyntaxKind.ExportKeyword));
+    return !!((_a = node.modifiers) === null || _a === void 0 ? void 0 : _a.some(m => (m === null || m === void 0 ? void 0 : m.kind) === typescript_1.default.SyntaxKind.ExportKeyword));
 }
 exports.isExported = isExported;
 function typedTsNode(val, key) {

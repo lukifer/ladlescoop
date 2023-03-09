@@ -95,8 +95,8 @@ export function getIndexedAccessType(indexedType: ts.IndexedAccessTypeNode): str
   return null
 }
 
-export function isExported(el: ts.Node) {
-  return !!(el.modifiers?.some(m => m?.kind === ts.SyntaxKind.ExportKeyword))
+export function isExported(node: ts.Node) {
+  return !!(node.modifiers?.some(m => m?.kind === ts.SyntaxKind.ExportKeyword))
 }
 
 export function typedTsNode<K extends keyof typeof keysToTypeGuards>(

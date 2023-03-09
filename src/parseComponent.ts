@@ -312,15 +312,14 @@ export function extractObjectEnumValues(
 
 export function handleFunction(
   state: State,
-  fn: ts.FunctionDeclaration
+  fn: ts.FunctionDeclaration | ts.ArrowFunction
 ): State {
-  const fnName = getName(fn)
+  const fnName = getName(fn) || getName(fn.parent)
   if (!/^([A-Z][a-zA-Z0-9_]+)/.test(fnName))
   if (!state.componentsMap[fnName] && fnName !== getFileName(state.inputFilePath))
     return state
 
   return produce(state, draft => {
-    if (!isExported(fn)) warn(`Warning: Component ${fnName} is not exported`)
     draft.componentsMap[fnName] = {
       ...(draft.componentsMap[fnName] || newEmptyComponent()),
       isDefaultExport: !!fn.modifiers?.some(m => m?.kind === ts.SyntaxKind.DefaultKeyword),

@@ -11,7 +11,12 @@ import {
   handleObjectEnum,
   handleType,
 } from './src/parseComponent'
-import {getSourceFile} from './src/tsnode'
+import {
+  getName,
+  getSourceFile,
+  isExported,
+  traverse,
+} from './src/tsnode'
 import {
   echo,
   fileExists,
@@ -85,7 +90,18 @@ export function run(): void {
       switch (fn.kind) {
         case ts.SyntaxKind.FunctionDeclaration:
           if (!ts.isFunctionDeclaration(fn)) return
+          if (!isExported(fn)) warn(`Warning: Component ${getName(fn)} is not exported`)
           return state = handleFunction(state, fn)
+
+        case ts.SyntaxKind.VariableStatement:
+          const [arrowFn] = traverse(fn, [
+            [ts.SyntaxKind.VariableDeclarationList, 0],
+            [ts.SyntaxKind.VariableDeclaration, 0],
+            [ts.SyntaxKind.ArrowFunction, 0],
+          ])
+          if (!arrowFn || !ts.isArrowFunction(arrowFn)) return
+          if (!isExported(fn)) warn(`Warning: Component ${getName(arrowFn.parent)} is not exported`)
+          return state = handleFunction(state, arrowFn)
       }
     })
 

@@ -90,7 +90,20 @@ function run() {
                 case ts.SyntaxKind.FunctionDeclaration:
                     if (!ts.isFunctionDeclaration(fn))
                         return;
+                    if (!(0, tsnode_1.isExported)(fn))
+                        (0, utils_1.warn)(`Warning: Component ${(0, tsnode_1.getName)(fn)} is not exported`);
                     return state = (0, parseComponent_1.handleFunction)(state, fn);
+                case ts.SyntaxKind.VariableStatement:
+                    const [arrowFn] = (0, tsnode_1.traverse)(fn, [
+                        [ts.SyntaxKind.VariableDeclarationList, 0],
+                        [ts.SyntaxKind.VariableDeclaration, 0],
+                        [ts.SyntaxKind.ArrowFunction, 0],
+                    ]);
+                    if (!arrowFn || !ts.isArrowFunction(arrowFn))
+                        return;
+                    if (!(0, tsnode_1.isExported)(fn))
+                        (0, utils_1.warn)(`Warning: Component ${(0, tsnode_1.getName)(arrowFn.parent)} is not exported`);
+                    return state = (0, parseComponent_1.handleFunction)(state, arrowFn);
             }
         });
         Object.keys(state.componentsMap).forEach((componentName) => {
