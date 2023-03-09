@@ -34,10 +34,12 @@ const utils_1 = require("./src/utils");
 function run() {
     const program = new commander_1.Command();
     program.usage("npx ladlescoop [options] <file>");
-    program.option("-o, --overwrite", "overwrite existing file");
+    program.option("-o, --overwrite", "Overwrite existing file(s)");
+    program.option("--dryrun", "Don't write to file(s)");
     program.option("--propsformat <value>", "Props naming format, such as '{Component}PropType'", "{Component}Props");
     program.option("--wrap <value>", "DOM wrapping: 'MockProvider(mocks=[]),div(className=\"foo\"|id=\"bar\")'", "div");
     program.parse(process.argv);
+    const opts = program.opts();
     let inputFilePath = program.args[0];
     if (!inputFilePath) {
         (0, utils_1.nope)("Error: missing file path argument");
@@ -54,7 +56,7 @@ function run() {
         const sourceFile = (0, tsnode_1.getSourceFile)(filePath);
         if (!sourceFile)
             (0, utils_1.nope)(`An error occurred reading "${filePath}"`);
-        let state = (0, utils_1.newEmptyState)(inputFilePath, program.opts().propsformat);
+        let state = (0, utils_1.newEmptyState)(inputFilePath, opts.propsformat);
         sourceFile.statements.forEach(statement => {
             switch (statement.kind) {
                 case ts.SyntaxKind.EnumDeclaration:
@@ -93,7 +95,7 @@ function run() {
         });
         Object.keys(state.componentsMap).forEach((componentName) => {
             const outputFilePath = `${dirPath}${componentName}.stories.tsx`;
-            if (!program.opts().overwrite && (0, utils_1.fileExists)(outputFilePath)) {
+            if (!opts.overwrite && !opts.dryrun && (0, utils_1.fileExists)(outputFilePath)) {
                 (0, utils_1.warn)(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`);
                 return;
             }
@@ -109,12 +111,14 @@ function run() {
                 inputFilePath,
                 isDefaultExport,
                 props,
-                wrap: program.opts().wrap || 'div',
+                wrap: opts.wrap || 'div',
             });
             // console.log({outputFilePath})
             // console.log({renderedStory})
             try {
-                (0, fs_1.writeFileSync)(outputFilePath, renderedStory);
+                if (!opts.dryrun) {
+                    (0, fs_1.writeFileSync)(outputFilePath, renderedStory);
+                }
                 filesWritten.push(outputFilePath);
             }
             catch (e) {
@@ -125,7 +129,8 @@ function run() {
     createStoryForFile(inputFilePath);
     if (filesWritten.length) {
         const plur = filesWritten.length > 1 ? 's' : '';
-        (0, utils_1.echo)(`Wrote the following file${plur}: \n${filesWritten.join('\n')}`);
+        const root = opts.dryrun ? 'Did not write' : 'Wrote';
+        (0, utils_1.echo)(`${root} the following file${plur}: \n${filesWritten.join('\n')}`);
     }
     else {
         (0, utils_1.echo)("No files written.");

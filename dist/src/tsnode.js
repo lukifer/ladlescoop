@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateDefaultObjectFromInterface = exports.generateDefaultObject = exports.getSourceFile = exports.typedTsNode = exports.isExported = exports.findNodesOfKind = exports.traverse = exports.getName = exports.getFirstOfKind = exports.getNthOfKind = exports.getChildrenOfKind = void 0;
+exports.generateDefaultObjectFromInterface = exports.generateDefaultObject = exports.getSourceFile = exports.typedTsNode = exports.isExported = exports.getIndexedAccessType = exports.findNodesOfKind = exports.traverse = exports.getName = exports.getFirstOfKind = exports.getNthOfKind = exports.getChildrenOfKind = void 0;
 const typescript_1 = __importDefault(require("typescript"));
 const fs_1 = require("fs");
 const utils_1 = require("./utils");
@@ -11,6 +11,7 @@ const keysToTypeGuards = {
     [typescript_1.default.SyntaxKind.AsExpression]: typescript_1.default.isAsExpression,
     [typescript_1.default.SyntaxKind.EnumDeclaration]: typescript_1.default.isEnumDeclaration,
     [typescript_1.default.SyntaxKind.Identifier]: typescript_1.default.isIdentifier,
+    [typescript_1.default.SyntaxKind.IndexedAccessType]: typescript_1.default.isIndexedAccessTypeNode,
     [typescript_1.default.SyntaxKind.LiteralType]: typescript_1.default.isLiteralTypeNode,
     [typescript_1.default.SyntaxKind.NullKeyword]: (x) => x.kind === 104,
     [typescript_1.default.SyntaxKind.NumericLiteral]: typescript_1.default.isNumericLiteral,
@@ -20,6 +21,8 @@ const keysToTypeGuards = {
     [typescript_1.default.SyntaxKind.PropertySignature]: typescript_1.default.isPropertySignature,
     [typescript_1.default.SyntaxKind.StringLiteral]: typescript_1.default.isStringLiteral,
     [typescript_1.default.SyntaxKind.TypeLiteral]: typescript_1.default.isTypeLiteralNode,
+    [typescript_1.default.SyntaxKind.TypeOperator]: typescript_1.default.isTypeOperatorNode,
+    [typescript_1.default.SyntaxKind.TypeQuery]: typescript_1.default.isTypeQueryNode,
     [typescript_1.default.SyntaxKind.TypeReference]: typescript_1.default.isTypeReferenceNode,
     [typescript_1.default.SyntaxKind.UnionType]: typescript_1.default.isUnionTypeNode,
     [typescript_1.default.SyntaxKind.VariableDeclaration]: typescript_1.default.isVariableDeclaration,
@@ -75,6 +78,15 @@ function findNodesOfKind(originNode, kinds) {
     return foundNodes;
 }
 exports.findNodesOfKind = findNodesOfKind;
+function getIndexedAccessType(indexedType) {
+    const query = getFirstOfKind(indexedType, typescript_1.default.SyntaxKind.TypeQuery);
+    const operator = getFirstOfKind(indexedType, typescript_1.default.SyntaxKind.TypeOperator);
+    if (query && operator && query.getText() === operator.type.getText()) {
+        return query.exprName.getText();
+    }
+    return null;
+}
+exports.getIndexedAccessType = getIndexedAccessType;
 function isExported(el) {
     var _a;
     return !!((_a = el.modifiers) === null || _a === void 0 ? void 0 : _a.some(m => (m === null || m === void 0 ? void 0 : m.kind) === typescript_1.default.SyntaxKind.ExportKeyword));

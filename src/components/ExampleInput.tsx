@@ -22,6 +22,16 @@ export const FontWeightObj = {
   bold: "700",
 } as const
 
+export enum Choices {
+  one = 1,
+  two = 2,
+}
+
+export const ChoicesObj = {
+  three: 3,
+  four: 4,
+} as const
+
 export const MAX_VALUE = 1000
 
 export type IgnoreMeProps = {
@@ -38,19 +48,21 @@ export type Complex = {
     e: {
       ee: 'a'
     }[]
-    f: string | null
+    // f: string | null // TODO
   }
-  g: () => void
+  // g: () => void // TODO
 }
 
 export type ExampleInputProps = {
   allowNegative?: boolean
   children?: React.ReactNode
-  complex: Complex
+  choices: Choices[]
+  choices2: Array<typeof ChoicesObj[keyof typeof ChoicesObj]>
+  json: Complex
   fontSize?: FontSize
   fontSizeLabel?: ExportedFontSize
-  // fontWeight?: typeof FontSizeObj[keyof typeof FontSizeObj] // TODO
-  fontWeight?: string
+  fontWeight?: typeof FontWeightObj[keyof typeof FontWeightObj] // TODO
+  // fontWeight?: string
   fontWeightLabel?: string
   labelString: string | null
   minValue?: -100 | 0 | 100
@@ -62,10 +74,13 @@ export type ExampleInputProps = {
 
 export function ExampleInput({
   allowNegative = true,
+  choices,
+  choices2,
   fontSize = FontSize.medium,
   fontSizeLabel = ExportedFontSize.medium,
   fontWeight = FontWeightObj.normal,
   fontWeightLabel = ExportedFontWeightObj.normal,
+  json,
   labelString,
   minValue,
   maxValue = MAX_VALUE,
@@ -84,6 +99,7 @@ export function ExampleInput({
     if (minValue !== undefined) updatedValue = Math.max(updatedValue, minValue)
     setValue(`${updatedValue || 0}`)
   }
+  const allChoices: number[] = [...choices, ...choices2]
   return (
     <div>
       <label>
@@ -101,6 +117,12 @@ export function ExampleInput({
           style={{fontSize, fontWeight}}
           value={value}
         />
+        <div>
+          Selected: {[1, 2, 3, 4].filter(
+            n => allChoices.includes(n)
+          ).join(', ') || 'none'}
+        </div>
+        <p>Example JSON: ${JSON.stringify(json)}</p>
       </label>
     </div>
   )

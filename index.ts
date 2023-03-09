@@ -25,10 +25,12 @@ import {
 export function run(): void {
   const program = new Command()
   program.usage("npx ladlescoop [options] <file>")
-  program.option("-o, --overwrite", "overwrite existing file")
+  program.option("-o, --overwrite", "Overwrite existing file(s)")
+  program.option("--dryrun", "Don't write to file(s)")
   program.option("--propsformat <value>", "Props naming format, such as '{Component}PropType'", "{Component}Props")
   program.option("--wrap <value>", "DOM wrapping: 'MockProvider(mocks=[]),div(className=\"foo\"|id=\"bar\")'", "div")
   program.parse(process.argv)
+  const opts = program.opts()
 
   let inputFilePath = program.args[0]
   if (!inputFilePath) {
@@ -49,7 +51,7 @@ export function run(): void {
     const sourceFile: ts.SourceFile = getSourceFile(filePath)
     if (!sourceFile) nope(`An error occurred reading "${filePath}"`)
 
-    let state = newEmptyState(inputFilePath, program.opts().propsformat)
+    let state = newEmptyState(inputFilePath, opts.propsformat)
 
     sourceFile.statements.forEach(statement => {
       switch (statement.kind) {
@@ -89,7 +91,7 @@ export function run(): void {
 
     Object.keys(state.componentsMap).forEach((componentName) => {
       const outputFilePath = `${dirPath}${componentName}.stories.tsx`
-      if (!program.opts().overwrite && fileExists(outputFilePath)) {
+      if (!opts.overwrite && !opts.dryrun && fileExists(outputFilePath)) {
         warn(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`)
         return
       }
@@ -109,12 +111,14 @@ export function run(): void {
         inputFilePath,
         isDefaultExport,
         props,
-        wrap: program.opts().wrap || 'div',
+        wrap: opts.wrap || 'div',
       })
       // console.log({outputFilePath})
       // console.log({renderedStory})
       try {
-        writeFileSync(outputFilePath, renderedStory)
+        if (!opts.dryrun) {
+          writeFileSync(outputFilePath, renderedStory)
+        }
         filesWritten.push(outputFilePath)
       } catch(e) {
         warn(`Something went wrong writing ${outputFilePath}: ${e}`
@@ -126,7 +130,8 @@ export function run(): void {
 
   if (filesWritten.length) {
     const plur = filesWritten.length > 1 ? 's' : ''
-    echo(`Wrote the following file${plur}: \n${filesWritten.join('\n')}`)
+    const root = opts.dryrun ? 'Did not write' : 'Wrote'
+    echo(`${root} the following file${plur}: \n${filesWritten.join('\n')}`)
   } else {
     echo("No files written.")
   }

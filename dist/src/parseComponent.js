@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleImport = exports.createArgType = exports.mutableAddPropBinding = exports.handleFunction = exports.extractObjectEnumValues = exports.extractEnumValues = exports.getObjectEnumLiteral = exports.handleObjectEnum = exports.handleEnum = exports.importEnumsFromFile = exports.mutableAddPropsType = exports.handleInterface = exports.handleType = exports.getComponentNameFromProps = void 0;
+exports.handleImport = exports.createArgType = exports.mutableAddToImports = exports.mutableAddPropBinding = exports.handleFunction = exports.extractObjectEnumValues = exports.extractEnumValues = exports.getObjectEnumLiteral = exports.handleObjectEnum = exports.handleEnum = exports.importEnumsFromFile = exports.mutableAddPropsType = exports.handleInterface = exports.handleType = exports.getComponentNameFromProps = void 0;
 const typescript_1 = __importDefault(require("typescript"));
 const immer_1 = __importDefault(require("immer"));
 const tsnode_1 = require("./tsnode");
@@ -108,23 +108,38 @@ function mutableAddPropsType(draft, componentName, propName, typeNode, isOptiona
                 type: typeNode.getText(),
                 argType: { action: propName },
             });
+        case typescript_1.default.SyntaxKind.IndexedAccessType:
+            if (!typescript_1.default.isIndexedAccessTypeNode(typeNode))
+                return;
+            const objName = (0, tsnode_1.getIndexedAccessType)(typeNode);
+            if (objName) {
+                mutableAddToImports(draft, componentName, objName);
+                return set({ kind, type: typeNode.getText() });
+            }
+            break;
+        case typescript_1.default.SyntaxKind.ArrayType:
         case typescript_1.default.SyntaxKind.TypeReference:
-            if (!typescript_1.default.isTypeReferenceNode(typeNode))
+            const node = typeNode.kind === typescript_1.default.SyntaxKind.ArrayType
+                ? (0, tsnode_1.getFirstOfKind)(typeNode, typescript_1.default.SyntaxKind.TypeReference)
+                : typeNode;
+            if (!typescript_1.default.isTypeReferenceNode(node))
                 break;
-            const typeName = typeNode.getText();
-            const propSet = { kind, type: typeName };
+            const indexedType = (0, tsnode_1.getFirstOfKind)(node, typescript_1.default.SyntaxKind.IndexedAccessType);
+            const typeName = (0, tsnode_1.getIndexedAccessType)(indexedType) || node.getText();
+            const propSet = { kind, type: typeNode.getText() };
             if (!!draft.enumsMap[typeName]) {
                 const enumKeys = Object.keys(draft.enumsMap[typeName]);
-                return set(Object.assign(Object.assign({}, propSet), { argType: createArgType(enumKeys, typeName), defaultValue: `${typeName}.${enumKeys[0]}` }));
+                mutableAddToImports(draft, componentName, typeName);
+                return set(Object.assign(Object.assign({}, propSet), { argType: createArgType(enumKeys, typeName, "multi-select") }));
             }
             else if (draft.importsMap[typeName]) {
                 // TODO: defaultValue / argType
-                const importPath = draft.importsMap[typeName];
                 if (draft.complexMap[typeName]) {
-                    draft.componentsMap[componentName].importsUsed[typeName] = importPath;
+                    mutableAddToImports(draft, componentName, typeName);
                     return set(Object.assign(Object.assign({}, propSet), { defaultValue: `${JSON.stringify(draft.complexMap[typeName])}` }));
                 }
                 else {
+                    const importPath = draft.importsMap[typeName];
                     draft.enumsMap = Object.assign(Object.assign({}, draft.enumsMap), importEnumsFromFile(draft.inputFilePath, importPath));
                 }
             }
@@ -291,10 +306,7 @@ function mutableAddPropBinding(draft, componentName, bind) {
                     return;
                 const enumName = (0, tsnode_1.getName)(token);
                 if (draft.enumsMap[enumName]) {
-                    if (!draft.componentsMap[componentName].importsUsed[enumName]) {
-                        const path = draft.importsMap[enumName] || `./${(0, utils_1.getFileName)(draft.inputFilePath)}`;
-                        draft.componentsMap[componentName].importsUsed[enumName] = path;
-                    }
+                    mutableAddToImports(draft, componentName, enumName);
                     if (!((_a = draft.componentsMap[componentName].props[propName]) === null || _a === void 0 ? void 0 : _a.argType)) {
                         const enumKeys = Object.keys(draft.enumsMap[enumName]);
                         const argType = createArgType(enumKeys, enumName);
@@ -306,10 +318,17 @@ function mutableAddPropBinding(draft, componentName, bind) {
     });
 }
 exports.mutableAddPropBinding = mutableAddPropBinding;
-function createArgType(enumKeys, prefix) {
+function mutableAddToImports(draft, componentName, importName) {
+    if (!draft.componentsMap[componentName].importsUsed[importName]) {
+        const path = draft.importsMap[importName] || `./${(0, utils_1.getFileName)(draft.inputFilePath)}`;
+        draft.componentsMap[componentName].importsUsed[importName] = path;
+    }
+}
+exports.mutableAddToImports = mutableAddToImports;
+function createArgType(enumKeys, prefix, controlType) {
     return ({
         control: {
-            type: enumKeys.length > 2 ? "select" : "radio"
+            type: controlType || (enumKeys.length > 2 ? "select" : "radio")
         },
         options: prefix
             ? enumKeys.map(k => `${prefix}.${k}`)

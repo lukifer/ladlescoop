@@ -5,6 +5,7 @@ import {
   generateDefaultObject,
   getChildrenOfKind,
   getFirstOfKind,
+  getIndexedAccessType,
   getName,
   getNthOfKind,
   getSourceFile,
@@ -143,29 +144,43 @@ export function mutableAddPropsType(
         type: typeNode.getText(),
         argType: {action: propName},
       })
+    case ts.SyntaxKind.IndexedAccessType:
+      if (!ts.isIndexedAccessTypeNode(typeNode)) return
+      const objName = getIndexedAccessType(typeNode)
+      if (objName) {
+        mutableAddToImports(draft, componentName, objName)
+        return set({kind, type: typeNode.getText()})
+      }
+      break
+    case ts.SyntaxKind.ArrayType:
     case ts.SyntaxKind.TypeReference:
-      if (!ts.isTypeReferenceNode(typeNode)) break
-      const typeName = typeNode.getText()
-      const propSet = {kind, type: typeName}
+      const node = typeNode.kind === ts.SyntaxKind.ArrayType
+        ? getFirstOfKind(typeNode, ts.SyntaxKind.TypeReference)
+        : typeNode
+      if (!ts.isTypeReferenceNode(node)) break
+      const indexedType = getFirstOfKind(node, ts.SyntaxKind.IndexedAccessType)
+      const typeName = getIndexedAccessType(indexedType) || node.getText()
+      const propSet = {kind, type: typeNode.getText()}
+
       if (!!draft.enumsMap[typeName]) {
         const enumKeys = Object.keys(draft.enumsMap[typeName])
+        mutableAddToImports(draft, componentName, typeName)
         return set({
           ...propSet,
-          argType: createArgType(enumKeys, typeName),
-          defaultValue: `${typeName}.${enumKeys[0]}`,
+          argType: createArgType(enumKeys, typeName, "multi-select"),
         })
       }
       else if (draft.importsMap[typeName]) {
         // TODO: defaultValue / argType
-        const importPath = draft.importsMap[typeName]
         if (draft.complexMap[typeName]) {
-          draft.componentsMap[componentName].importsUsed[typeName] = importPath
+          mutableAddToImports(draft, componentName, typeName)
           return set({
             ...propSet,
             defaultValue: `${JSON.stringify(draft.complexMap[typeName])}`,
           })
         }
         else {
+          const importPath = draft.importsMap[typeName]
           draft.enumsMap = {
             ...draft.enumsMap,
             ...importEnumsFromFile(draft.inputFilePath, importPath)
@@ -358,10 +373,7 @@ export function mutableAddPropBinding(
         if (!ts.isPropertyAccessExpression(token)) return
         const enumName = getName(token)
         if (draft.enumsMap[enumName]) {
-          if (!draft.componentsMap[componentName].importsUsed[enumName]) {
-            const path = draft.importsMap[enumName] || `./${getFileName(draft.inputFilePath)}`
-            draft.componentsMap[componentName].importsUsed[enumName] = path
-          }
+          mutableAddToImports(draft, componentName, enumName)
           if (!draft.componentsMap[componentName].props[propName]?.argType) {
             const enumKeys = Object.keys(draft.enumsMap[enumName])
             const argType = createArgType(enumKeys, enumName)
@@ -376,10 +388,25 @@ export function mutableAddPropBinding(
   })
 }
 
-export function createArgType(enumKeys: string[], prefix?: string): ArgType {
+export function mutableAddToImports(
+  draft: Draft<State>,
+  componentName: string,
+  importName: string
+) {
+  if (!draft.componentsMap[componentName].importsUsed[importName]) {
+    const path = draft.importsMap[importName] || `./${getFileName(draft.inputFilePath)}`
+    draft.componentsMap[componentName].importsUsed[importName] = path
+  }
+}
+
+export function createArgType(
+  enumKeys: string[],
+  prefix?: string,
+  controlType?: ArgType["control"]["type"]
+): ArgType {
   return ({
     control: {
-      type: enumKeys.length > 2 ? "select" : "radio"
+      type: controlType || (enumKeys.length > 2 ? "select" : "radio")
     },
     options: prefix
       ? enumKeys.map(k => `${prefix}.${k}`)

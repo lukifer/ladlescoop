@@ -2,32 +2,36 @@ import React from "react"
 import type {Story} from "@ladle/react"
 
 import {ExampleInput} from "./ExampleInput"
-import {Complex, FontSize, FontWeightObj} from "./ExampleInput"
+import {Choices, ChoicesObj, Complex, FontSize, FontWeightObj} from "./ExampleInput"
 import {ExportedFontSize, ExportedFontWeightObj} from "../types"
 
 export const ExampleInputStory: Story<{
   allowNegative?: boolean
-  complex: Complex
+  choices: Choices[]
+  choices2: Array<typeof ChoicesObj[keyof typeof ChoicesObj]>
   fontSize?: FontSize
   fontSizeLabel?: ExportedFontSize
-  fontWeight?: string
+  fontWeight?: typeof FontWeightObj[keyof typeof FontWeightObj]
   fontWeightLabel?: string
+  json: Complex
   labelString: string | null
-  minValue?: -100 | 0 | 100
   maxValue?: number
+  minValue?: -100 | 0 | 100
   onChange: (updatedValue: string) => void
   roundToNearest?: "none" | "ten" | "hundred"
   startingValue?: number | string
 }> = ({
   allowNegative,
-  complex,
+  choices,
+  choices2,
   fontSize,
   fontSizeLabel,
   fontWeight,
   fontWeightLabel,
+  json,
   labelString,
-  minValue,
   maxValue,
+  minValue,
   onChange,
   roundToNearest,
   startingValue
@@ -37,14 +41,16 @@ export const ExampleInputStory: Story<{
       <h3>ExampleInput</h3>
       <ExampleInput
         allowNegative={allowNegative}
-        complex={complex}
+        choices={choices}
+        choices2={choices2}
         fontSize={fontSize}
         fontSizeLabel={fontSizeLabel}
         fontWeight={fontWeight}
         fontWeightLabel={fontWeightLabel}
+        json={json}
         labelString={labelString}
-        minValue={minValue}
         maxValue={maxValue}
+        minValue={minValue}
         onChange={onChange}
         roundToNearest={roundToNearest}
         startingValue={startingValue}
@@ -57,11 +63,11 @@ export const ExampleInputStory: Story<{
 
 ExampleInputStory.args = {
   allowNegative: true,
-  complex: '{"a":0,"b":"","c":{"d":[],"e":[]}}',
   fontSize: FontSize.medium,
   fontSizeLabel: ExportedFontSize.medium,
   fontWeight: FontWeightObj.normal,
   fontWeightLabel: ExportedFontWeightObj.normal,
+  json: {"a":0,"b":"","c":{"d":[],"e":[]}},
   labelString: '',
   maxValue: 0,
   roundToNearest: "none",
@@ -69,8 +75,22 @@ ExampleInputStory.args = {
 }
 
 ExampleInputStory.argTypes = {
+  choices: {
+    control: {type: "multi-select"},
+    options: [
+      Choices.one,
+      Choices.two
+    ],
+  },
+  choices2: {
+    control: {type: "multi-select"},
+    options: [
+      ChoicesObj.three,
+      ChoicesObj.four
+    ],
+  },
   fontSize: {
-    control: {type: "select"},
+    control: {type: "multi-select"},
     options: [
       FontSize.small,
       FontSize.medium,

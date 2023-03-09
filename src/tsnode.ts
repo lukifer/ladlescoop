@@ -7,6 +7,7 @@ const keysToTypeGuards = {
   [ts.SyntaxKind.AsExpression]: ts.isAsExpression,
   [ts.SyntaxKind.EnumDeclaration]: ts.isEnumDeclaration,
   [ts.SyntaxKind.Identifier]: ts.isIdentifier,
+  [ts.SyntaxKind.IndexedAccessType]: ts.isIndexedAccessTypeNode,
   [ts.SyntaxKind.LiteralType]: ts.isLiteralTypeNode,
   [ts.SyntaxKind.NullKeyword]: (x: ts.Node): x is ts.NullLiteral => x.kind === 104,
   [ts.SyntaxKind.NumericLiteral]: ts.isNumericLiteral,
@@ -16,6 +17,8 @@ const keysToTypeGuards = {
   [ts.SyntaxKind.PropertySignature]: ts.isPropertySignature,
   [ts.SyntaxKind.StringLiteral]: ts.isStringLiteral,
   [ts.SyntaxKind.TypeLiteral]: ts.isTypeLiteralNode,
+  [ts.SyntaxKind.TypeOperator]: ts.isTypeOperatorNode,
+  [ts.SyntaxKind.TypeQuery]: ts.isTypeQueryNode,
   [ts.SyntaxKind.TypeReference]: ts.isTypeReferenceNode,
   [ts.SyntaxKind.UnionType]: ts.isUnionTypeNode,
   [ts.SyntaxKind.VariableDeclaration]: ts.isVariableDeclaration,
@@ -81,6 +84,15 @@ export function findNodesOfKind(originNode: ts.Node, kinds: ts.SyntaxKind[]): ts
   }
   visit(originNode);
   return foundNodes;
+}
+
+export function getIndexedAccessType(indexedType: ts.IndexedAccessTypeNode): string | null {
+  const query = getFirstOfKind(indexedType, ts.SyntaxKind.TypeQuery)
+  const operator = getFirstOfKind(indexedType, ts.SyntaxKind.TypeOperator)
+  if (query && operator && query.getText() === operator.type.getText()) {
+    return query.exprName.getText()
+  }
+  return null
 }
 
 export function isExported(el: ts.Node) {
