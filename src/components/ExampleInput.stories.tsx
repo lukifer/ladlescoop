@@ -1,9 +1,9 @@
 import React from "react"
 import type {Story} from "@ladle/react"
 
-import {ExampleInput} from "./ExampleInput"
-import {Choices, ChoicesObj, Complex, FontSize, FontWeightObj} from "./ExampleInput"
+import ExampleInput from "./ExampleInput"
 import {ExportedFontSize, ExportedFontWeightObj} from "../types"
+import {Choices, ChoicesObj, Complex, FontSize, FontWeightObj} from "./ExampleInput"
 
 export const ExampleInputStory: Story<{
   allowNegative?: boolean
@@ -14,6 +14,7 @@ export const ExampleInputStory: Story<{
   fontWeight?: typeof FontWeightObj[keyof typeof FontWeightObj]
   fontWeightLabel?: string
   json: Complex
+  jsx: JSX.Element
   labelString: string | null
   maxValue?: number
   minValue?: -100 | 0 | 100
@@ -29,6 +30,7 @@ export const ExampleInputStory: Story<{
   fontWeight,
   fontWeightLabel,
   json,
+  jsx = <></>,
   labelString,
   maxValue,
   minValue,
@@ -48,6 +50,7 @@ export const ExampleInputStory: Story<{
         fontWeight={fontWeight}
         fontWeightLabel={fontWeightLabel}
         json={json}
+        jsx={jsx}
         labelString={labelString}
         maxValue={maxValue}
         minValue={minValue}

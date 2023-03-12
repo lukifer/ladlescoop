@@ -58,15 +58,15 @@ export type ExampleInputProps = {
   children?: React.ReactNode
   choices: Choices[]
   choices2: Array<typeof ChoicesObj[keyof typeof ChoicesObj]>
-  json: Complex
   fontSize?: FontSize
   fontSizeLabel?: ExportedFontSize
-  fontWeight?: typeof FontWeightObj[keyof typeof FontWeightObj] // TODO
-  // fontWeight?: string
+  fontWeight?: typeof FontWeightObj[keyof typeof FontWeightObj]
   fontWeightLabel?: string
+  json: Complex
+  jsx: JSX.Element
   labelString: string | null
-  minValue?: -100 | 0 | 100
   maxValue?: number
+  minValue?: -100 | 0 | 100
   onChange: (updatedValue: string) => void
   roundToNearest?: "none" | "ten" | "hundred"
   startingValue?: number | string
@@ -81,6 +81,7 @@ export function ExampleInput({
   fontWeight = FontWeightObj.normal,
   fontWeightLabel = ExportedFontWeightObj.normal,
   json,
+  jsx,
   labelString,
   minValue,
   maxValue = MAX_VALUE,
@@ -92,7 +93,7 @@ export function ExampleInput({
   const onBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     let updatedValue = parseInt(e.target.value)
     if (!allowNegative) updatedValue = Math.max(0, updatedValue)
-    if (roundToNearest !== "none") { // not actual rounding, don't @ me :P
+    if (roundToNearest !== "none") { // not actual rounding
       updatedValue -= (updatedValue % (roundToNearest === "ten" ? 10 : 100))
     }
     if (maxValue !== undefined) updatedValue = Math.min(updatedValue, maxValue)
@@ -123,7 +124,10 @@ export function ExampleInput({
           ).join(', ') || 'none'}
         </div>
         <p>Example JSON: ${JSON.stringify(json)}</p>
+        <div>{jsx}</div>
       </label>
     </div>
   )
 }
+
+export default ExampleInput

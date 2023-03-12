@@ -10,6 +10,7 @@ import {
   getNthOfKind,
   getSourceFile,
   isExported,
+  isJSX,
   traverse,
 } from "./tsnode"
 import {
@@ -24,7 +25,6 @@ import {
   getFileName,
   getFullPath,
   newEmptyComponent,
-  warn,
 } from "./utils"
 
 export function getComponentNameFromProps(format: string, propsName: string) {
@@ -88,15 +88,21 @@ export function mutableAddPropsType(
     draft.componentsMap[componentName] = newEmptyComponent()
   }
 
-  const set = (p: Omit<Prop, "name" | "isOptional">): void => {
+  // FIXME: when running tests, TypeError: Cannot read property 'text' of undefined
+  let type = ""
+  try {type = typeNode.getText()} catch(e) {}
+
+  const set = (p: Partial<Omit<Prop, "name" | "isOptional">>): void => {
     draft.componentsMap[componentName].props[propName] = {
-      ...p,
+      type,
+      kind: typeNode.kind,
       name: propName,
       isOptional,
+      ...p,
     }
   }
 
-  if (propName === 'children') {
+  if (propName === "children") {
     draft.componentsMap[componentName].hasChildren = true
     return
   }
@@ -109,7 +115,6 @@ export function mutableAddPropsType(
       if (typeNode.types.every(ts.isLiteralTypeNode)) {
         const enumKeys = typeNode.types.map(t => t.getText())
         return set({
-          kind,
           type: enumKeys.join(" | "),
           argType: createArgType(enumKeys)
         })
@@ -119,37 +124,31 @@ export function mutableAddPropsType(
         if (typeNode.types.find(t => t.kind === ts.SyntaxKind.StringKeyword)) {
           return set({
             kind: ts.SyntaxKind.StringKeyword,
-            type: typeNode.getText(),
             defaultValue: "''",
           })
         }
         else if (typeNode.types.find(t => t.kind === ts.SyntaxKind.NumberKeyword)) {
           return set({
             kind: ts.SyntaxKind.NumberKeyword,
-            type: typeNode.getText(),
-            defaultValue: '0'
+            defaultValue: "0",
           })
         }
       }
       break
     case ts.SyntaxKind.BooleanKeyword:
-      return set({kind, type: "boolean", defaultValue: "false"})
+      return set({type: "boolean", defaultValue: "false"})
     case ts.SyntaxKind.StringKeyword:
-      return set({kind, type: "string", defaultValue: "''"})
+      return set({type: "string", defaultValue: "''"})
     case ts.SyntaxKind.NumberKeyword:
-      return set({kind, type: "number", defaultValue: "0"})
+      return set({type: "number", defaultValue: "0"})
     case ts.SyntaxKind.FunctionType:
-      return set({
-        kind,
-        type: typeNode.getText(),
-        argType: {action: propName},
-      })
+      return set({argType: {action: propName}})
     case ts.SyntaxKind.IndexedAccessType:
       if (!ts.isIndexedAccessTypeNode(typeNode)) return
       const objName = getIndexedAccessType(typeNode)
       if (objName) {
         mutableAddToImports(draft, componentName, objName)
-        return set({kind, type: typeNode.getText()})
+        return set({})
       }
       break
     case ts.SyntaxKind.ArrayType:
@@ -158,15 +157,17 @@ export function mutableAddPropsType(
         ? getFirstOfKind(typeNode, ts.SyntaxKind.TypeReference)
         : typeNode
       if (!ts.isTypeReferenceNode(node)) break
+      if (isJSX(typeNode.getText())) {
+        return set({defaultValue: "<></>"})
+      }
+
       const indexedType = getFirstOfKind(node, ts.SyntaxKind.IndexedAccessType)
       const typeName = getIndexedAccessType(indexedType) || node.getText()
-      const propSet = {kind, type: typeNode.getText()}
 
       if (!!draft.enumsMap[typeName]) {
         const enumKeys = Object.keys(draft.enumsMap[typeName])
         mutableAddToImports(draft, componentName, typeName)
         return set({
-          ...propSet,
           argType: createArgType(enumKeys, typeName, "multi-select"),
         })
       }
@@ -175,7 +176,6 @@ export function mutableAddPropsType(
         if (draft.complexMap[typeName]) {
           mutableAddToImports(draft, componentName, typeName)
           return set({
-            ...propSet,
             defaultValue: `${JSON.stringify(draft.complexMap[typeName])}`,
           })
         }
@@ -187,7 +187,7 @@ export function mutableAddPropsType(
           }
         }
       }
-      return set(propSet)
+      return set({})
   }
 }
 

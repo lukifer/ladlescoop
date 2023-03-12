@@ -1,6 +1,6 @@
 {
   "name": "ladlescoop",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "main": "src/index.ts",
   "bin": {
@@ -15,7 +15,7 @@
   "author": "Luke Dennis",
   "license": "Unlicense",
   "dependencies": {
-    "@ladle/react": "^2.9.0",
+    "@ladle/react": "^2.10.1",
     "commander": "^10.0.0",
     "fs": "0.0.1-security",
     "immer": "^9.0.19",

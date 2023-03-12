@@ -1,3 +1,4 @@
+import {isJSX} from "./tsnode"
 import {
   ArgType,
   ArgTypesMap,
@@ -6,10 +7,10 @@ import {
   Prop,
 } from "./types"
 import {
-  sortedEntries,
-  sortedKeys,
   getFileName,
   indentLines,
+  sortedEntries,
+  sortedKeys,
 } from "./utils"
 
 type StoryRenderOptions = {
@@ -29,12 +30,12 @@ export function renderStory({
   inputFilePath,
   isDefaultExport,
   props = {},
-  wrap = 'div',
+  wrap = "div",
 }: StoryRenderOptions) {
   const storyName = `${componentName}Story`
   const defaultValues = sortedKeys(props).reduce<Array<[string, string]>>((out, k) => {
-    const {defaultValue} = props[k]
-    if (defaultValue === undefined) return out
+    const {defaultValue, type} = props[k]
+    if (defaultValue === undefined || isJSX(type)) return out
     return [...out, [k, defaultValue]]
   }, [])
   const argTypes = sortedKeys(props).reduce<ArgTypesMap>((out, k) => {
@@ -57,7 +58,7 @@ export function renderStory({
 
   const domNodes = unpackWrap(wrap)
   domNodes.push([componentName, sortedKeys(props).map(p => [p, p])])
-  if (hasChildren) domNodes.push(['div'])
+  if (hasChildren) domNodes.push(["div"])
   // console.log({domNodes})
   // console.log({wrap})
   // console.log({props})
@@ -68,13 +69,15 @@ export function renderStory({
 import type {Story} from "@ladle/react"
 
 import ${isDefaultExport ? componentName : `{${componentName}}`} from "./${inputFileName}"
-${Object.keys(importsByFile).map(path =>
-`import {${importsByFile[path].join(', ')}} from "${path}"`).join("\n")}
+${sortedKeys(importsByFile).map(path =>
+`import {${[...importsByFile[path]].sort().join(", ")}} from "${path}"`).join("\n")}
 
 export const ${storyName}: Story<{${sortedKeys(props).map(p => `
   ${p}${props[p].isOptional ? "?" : ""}: ${props[p].type}`).join("")}
 }> = ({
-  ${sortedKeys(props).join(",\n  ")}
+  ${sortedKeys(props).map(p => `${p}${
+    !props[p].isOptional && isJSX(props[p].type) ? ` = ${props[p].defaultValue}` : ""
+  }`).join(",\n  ")}
 }) => {
   return (
 ${renderDomTree(componentName, domNodes, 2)}
@@ -82,18 +85,18 @@ ${renderDomTree(componentName, domNodes, 2)}
 }
 ${defaultValues?.length ? `
 ${storyName}.args = {${defaultValues.map(([key, defaultValue]) => `
-  ${key}: ${defaultValue},`).join('')}
-}` : ''}
+  ${key}: ${defaultValue},`).join("")}
+}` : ""}
 
 ${storyName}.argTypes = {
 ${indentLines(sortedEntries<DeepReadonly<ArgType>>(argTypes).map(([key, argType]) =>
 `${key}: {
-${argType.control ? `  control: {type: "${argType.control.type}"},` : ''
-}${argType.action ? `  action: "${argType.action}",` : ''
+${argType.control ? `  control: {type: "${argType.control.type}"},` : ""
+}${argType.action ? `  action: "${argType.action}",` : ""
 }${argType.options ? `
   options: [
 ${indentLines([...argType.options], 2).join(",\n")}
-  ],` : ''}
+  ],` : ""}
 }`)).join(",\n")}
 }`
   )
@@ -132,10 +135,10 @@ export function renderDomTree(componentName: string, domNodes: DomTree, indentCt
     ? [
       `<${nodeName}`,
       ...attrStrs.map(attr => `  ${attr}`),
-      `${isLast ? '/' : ''}>`
+      `${isLast ? "/" : ""}>`
     ]
     : [
-      `<${nodeName}${attrStrs.length ? " " + attrStrs.join(" ") : ""}${isLast ? ' /' : ''}>`
+      `<${nodeName}${attrStrs.length ? " " + attrStrs.join(" ") : ""}${isLast ? " /" : ""}>`
     ]
 
   if (isLast) return indentLines([

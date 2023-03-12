@@ -22,10 +22,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.run = void 0;
 const commander_1 = require("commander");
 const ts = __importStar(require("typescript"));
+const immer_1 = __importDefault(require("immer"));
 const fs_1 = require("fs");
 const storyTemplate_1 = require("./src/storyTemplate");
 const parseComponent_1 = require("./src/parseComponent");
@@ -36,6 +40,7 @@ function run() {
     program.usage("npx ladlescoop [options] <file>");
     program.option("-o, --overwrite", "Overwrite existing file(s)");
     program.option("--dryrun", "Don't write to file(s)");
+    program.option("--stdout", "Print all output to stdout rather than files");
     program.option("--propsformat <value>", "Props naming format, such as '{Component}PropType'", "{Component}Props");
     program.option("--wrap <value>", "DOM wrapping: 'MockProvider(mocks=[]),div(className=\"foo\"|id=\"bar\")'", "div");
     program.parse(process.argv);
@@ -85,30 +90,36 @@ function run() {
                     return state = (0, parseComponent_1.handleInterface)(state, statement);
             }
         });
-        sourceFile.statements.forEach(fn => {
-            switch (fn.kind) {
+        sourceFile.statements.forEach(statement => {
+            var _a;
+            switch (statement.kind) {
                 case ts.SyntaxKind.FunctionDeclaration:
-                    if (!ts.isFunctionDeclaration(fn))
+                    if (!ts.isFunctionDeclaration(statement))
                         return;
-                    if (!(0, tsnode_1.isExported)(fn))
-                        (0, utils_1.warn)(`Warning: Component ${(0, tsnode_1.getName)(fn)} is not exported`);
-                    return state = (0, parseComponent_1.handleFunction)(state, fn);
+                    return state = (0, parseComponent_1.handleFunction)(state, statement);
                 case ts.SyntaxKind.VariableStatement:
-                    const [arrowFn] = (0, tsnode_1.traverse)(fn, [
+                    const [arrowFn] = (0, tsnode_1.traverse)(statement, [
                         [ts.SyntaxKind.VariableDeclarationList, 0],
                         [ts.SyntaxKind.VariableDeclaration, 0],
                         [ts.SyntaxKind.ArrowFunction, 0],
                     ]);
                     if (!arrowFn || !ts.isArrowFunction(arrowFn))
                         return;
-                    if (!(0, tsnode_1.isExported)(fn))
-                        (0, utils_1.warn)(`Warning: Component ${(0, tsnode_1.getName)(arrowFn.parent)} is not exported`);
                     return state = (0, parseComponent_1.handleFunction)(state, arrowFn);
+                case ts.SyntaxKind.ExportAssignment:
+                    if (!ts.isExportAssignment(statement))
+                        return;
+                    const [, exportedComponent] = (_a = statement.getText()) === null || _a === void 0 ? void 0 : _a.match(/^export default ([A-Z][A-Za-z0-9_]*)$/);
+                    if (exportedComponent && state.componentsMap[exportedComponent]) {
+                        return state = (0, immer_1.default)(state, (draft) => {
+                            draft.componentsMap[exportedComponent].isDefaultExport = true;
+                        });
+                    }
             }
         });
         Object.keys(state.componentsMap).forEach((componentName) => {
             const outputFilePath = `${dirPath}${componentName}.stories.tsx`;
-            if (!opts.overwrite && !opts.dryrun && (0, utils_1.fileExists)(outputFilePath)) {
+            if (!opts.overwrite && !opts.dryrun && !opts.stdout && (0, utils_1.fileExists)(outputFilePath)) {
                 (0, utils_1.warn)(`Error: story file "${outputFilePath}" already exists. Use --overwrite to replace it.`);
                 return;
             }
@@ -129,7 +140,10 @@ function run() {
             // console.log({outputFilePath})
             // console.log({renderedStory})
             try {
-                if (!opts.dryrun) {
+                if (opts.stdout) {
+                    (0, utils_1.echo)(renderedStory);
+                }
+                else if (!opts.dryrun) {
                     (0, fs_1.writeFileSync)(outputFilePath, renderedStory);
                 }
                 filesWritten.push(outputFilePath);
@@ -140,13 +154,15 @@ function run() {
         });
     }
     createStoryForFile(inputFilePath);
-    if (filesWritten.length) {
-        const plur = filesWritten.length > 1 ? 's' : '';
-        const root = opts.dryrun ? 'Did not write' : 'Wrote';
-        (0, utils_1.echo)(`${root} the following file${plur}: \n${filesWritten.join('\n')}`);
-    }
-    else {
-        (0, utils_1.echo)("No files written.");
+    if (!opts.stdout) {
+        if (filesWritten.length) {
+            const plur = filesWritten.length > 1 ? 's' : '';
+            const root = opts.dryrun ? 'Did not write' : 'Wrote';
+            (0, utils_1.echo)(`${root} the following file${plur}: \n${filesWritten.join('\n')}`);
+        }
+        else {
+            (0, utils_1.echo)("No files written.");
+        }
     }
 }
 exports.run = run;

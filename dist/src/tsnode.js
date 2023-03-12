@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateDefaultObjectFromInterface = exports.generateDefaultObject = exports.getSourceFile = exports.typedTsNode = exports.isExported = exports.getIndexedAccessType = exports.findNodesOfKind = exports.traverse = exports.getName = exports.getFirstOfKind = exports.getNthOfKind = exports.getChildrenOfKind = void 0;
+exports.generateDefaultObjectFromInterface = exports.generateDefaultObject = exports.getSourceFile = exports.typedTsNode = exports.isJSX = exports.isExported = exports.getIndexedAccessType = exports.findNodesOfKind = exports.traverse = exports.getName = exports.getFirstOfKind = exports.getNthOfKind = exports.getChildrenOfKind = void 0;
 const typescript_1 = __importDefault(require("typescript"));
 const fs_1 = require("fs");
 const utils_1 = require("./utils");
@@ -92,6 +92,16 @@ function isExported(node) {
     return !!((_a = node.modifiers) === null || _a === void 0 ? void 0 : _a.some(m => (m === null || m === void 0 ? void 0 : m.kind) === typescript_1.default.SyntaxKind.ExportKeyword));
 }
 exports.isExported = isExported;
+function isJSX(typeName) {
+    return [
+        'JSX.Element',
+        'ReactElement',
+        'ReactNode',
+        'React.ReactElement',
+        'ReaReactNode',
+    ].includes(typeName);
+}
+exports.isJSX = isJSX;
 function typedTsNode(val, key) {
     const typeGuard = keysToTypeGuards[key];
     if (!val)

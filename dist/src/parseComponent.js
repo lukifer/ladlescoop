@@ -57,10 +57,16 @@ function mutableAddPropsType(draft, componentName, propName, typeNode, isOptiona
     if (!draft.componentsMap[componentName]) {
         draft.componentsMap[componentName] = (0, utils_1.newEmptyComponent)();
     }
+    // FIXME: when running tests, TypeError: Cannot read property 'text' of undefined
+    let type = "";
+    try {
+        type = typeNode.getText();
+    }
+    catch (e) { }
     const set = (p) => {
-        draft.componentsMap[componentName].props[propName] = Object.assign(Object.assign({}, p), { name: propName, isOptional });
+        draft.componentsMap[componentName].props[propName] = Object.assign({ type, kind: typeNode.kind, name: propName, isOptional }, p);
     };
-    if (propName === 'children') {
+    if (propName === "children") {
         draft.componentsMap[componentName].hasChildren = true;
         return;
     }
@@ -73,7 +79,6 @@ function mutableAddPropsType(draft, componentName, propName, typeNode, isOptiona
             if (typeNode.types.every(typescript_1.default.isLiteralTypeNode)) {
                 const enumKeys = typeNode.types.map(t => t.getText());
                 return set({
-                    kind,
                     type: enumKeys.join(" | "),
                     argType: createArgType(enumKeys)
                 });
@@ -83,38 +88,32 @@ function mutableAddPropsType(draft, componentName, propName, typeNode, isOptiona
                 if (typeNode.types.find(t => t.kind === typescript_1.default.SyntaxKind.StringKeyword)) {
                     return set({
                         kind: typescript_1.default.SyntaxKind.StringKeyword,
-                        type: typeNode.getText(),
                         defaultValue: "''",
                     });
                 }
                 else if (typeNode.types.find(t => t.kind === typescript_1.default.SyntaxKind.NumberKeyword)) {
                     return set({
                         kind: typescript_1.default.SyntaxKind.NumberKeyword,
-                        type: typeNode.getText(),
-                        defaultValue: '0'
+                        defaultValue: "0",
                     });
                 }
             }
             break;
         case typescript_1.default.SyntaxKind.BooleanKeyword:
-            return set({ kind, type: "boolean", defaultValue: "false" });
+            return set({ type: "boolean", defaultValue: "false" });
         case typescript_1.default.SyntaxKind.StringKeyword:
-            return set({ kind, type: "string", defaultValue: "''" });
+            return set({ type: "string", defaultValue: "''" });
         case typescript_1.default.SyntaxKind.NumberKeyword:
-            return set({ kind, type: "number", defaultValue: "0" });
+            return set({ type: "number", defaultValue: "0" });
         case typescript_1.default.SyntaxKind.FunctionType:
-            return set({
-                kind,
-                type: typeNode.getText(),
-                argType: { action: propName },
-            });
+            return set({ argType: { action: propName } });
         case typescript_1.default.SyntaxKind.IndexedAccessType:
             if (!typescript_1.default.isIndexedAccessTypeNode(typeNode))
                 return;
             const objName = (0, tsnode_1.getIndexedAccessType)(typeNode);
             if (objName) {
                 mutableAddToImports(draft, componentName, objName);
-                return set({ kind, type: typeNode.getText() });
+                return set({});
             }
             break;
         case typescript_1.default.SyntaxKind.ArrayType:
@@ -124,26 +123,32 @@ function mutableAddPropsType(draft, componentName, propName, typeNode, isOptiona
                 : typeNode;
             if (!typescript_1.default.isTypeReferenceNode(node))
                 break;
+            if ((0, tsnode_1.isJSX)(typeNode.getText())) {
+                return set({ defaultValue: "<></>" });
+            }
             const indexedType = (0, tsnode_1.getFirstOfKind)(node, typescript_1.default.SyntaxKind.IndexedAccessType);
             const typeName = (0, tsnode_1.getIndexedAccessType)(indexedType) || node.getText();
-            const propSet = { kind, type: typeNode.getText() };
             if (!!draft.enumsMap[typeName]) {
                 const enumKeys = Object.keys(draft.enumsMap[typeName]);
                 mutableAddToImports(draft, componentName, typeName);
-                return set(Object.assign(Object.assign({}, propSet), { argType: createArgType(enumKeys, typeName, "multi-select") }));
+                return set({
+                    argType: createArgType(enumKeys, typeName, "multi-select"),
+                });
             }
             else if (draft.importsMap[typeName]) {
                 // TODO: defaultValue / argType
                 if (draft.complexMap[typeName]) {
                     mutableAddToImports(draft, componentName, typeName);
-                    return set(Object.assign(Object.assign({}, propSet), { defaultValue: `${JSON.stringify(draft.complexMap[typeName])}` }));
+                    return set({
+                        defaultValue: `${JSON.stringify(draft.complexMap[typeName])}`,
+                    });
                 }
                 else {
                     const importPath = draft.importsMap[typeName];
                     draft.enumsMap = Object.assign(Object.assign({}, draft.enumsMap), importEnumsFromFile(draft.inputFilePath, importPath));
                 }
             }
-            return set(propSet);
+            return set({});
     }
 }
 exports.mutableAddPropsType = mutableAddPropsType;

@@ -7,6 +7,8 @@ Usage: npx ladlescoop [options] <file>
 
 Options:
   -o, --overwrite        overwrite existing file
+  --dryrun               Don't write to file(s)
+  --stdout               Print all output to stdout rather than files
   --propsformat <value>  Custom props naming format (default: "{Component}Props")
   --wrap <value>         Custom DOM wrapping: 'div(className="foo"|id="bar"),MockProvider(mocks=[])'
   -h, --help             display help for command
@@ -32,7 +34,7 @@ npm test -- -u # update snapshots
 ```
 
 ##### TODO:
-- JSX props
+- satisfies operator on args/argTypes
 - Custom types imports
 - Props destructuring within render function
 - Parsing plain JS in addition to TypeScript

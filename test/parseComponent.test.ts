@@ -84,11 +84,11 @@ describe("parseComponent", () => {
   "Taco": {
     "props": {
       "salsa": {
-        "kind": 152,
         "type": "string",
-        "defaultValue": "''",
+        "kind": 152,
         "name": "salsa",
-        "isOptional": true
+        "isOptional": true,
+        "defaultValue": "''"
       }
     },
     "importsUsed": {}
@@ -121,11 +121,11 @@ describe("parseComponent", () => {
   "Taco": {
     "props": {
       "salsa": {
-        "kind": 152,
         "type": "string",
-        "defaultValue": "''",
+        "kind": 152,
         "name": "salsa",
-        "isOptional": true
+        "isOptional": true,
+        "defaultValue": "''"
       }
     },
     "importsUsed": {}

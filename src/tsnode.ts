@@ -99,6 +99,16 @@ export function isExported(node: ts.Node) {
   return !!(node.modifiers?.some(m => m?.kind === ts.SyntaxKind.ExportKeyword))
 }
 
+export function isJSX(typeName: string) {
+  return [
+    'JSX.Element',
+    'ReactElement',
+    'ReactNode',
+    'React.ReactElement',
+    'ReaReactNode',
+  ].includes(typeName)
+}
+
 export function typedTsNode<K extends keyof typeof keysToTypeGuards>(
   val: ts.Node,
   key: K,
