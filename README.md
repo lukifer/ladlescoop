@@ -8,18 +8,13 @@ Usage: npx ladlescoop [options] <file>
 Options:
   -o, --overwrite        overwrite existing file
   --dryrun               Don't write to file(s)
-  --stdout               Print all output to stdout rather than files
+  --stdout               Print all output to stdout rather than filesysytem
   --propsformat <value>  Custom props naming format (default: "{Component}Props")
   --wrap <value>         Custom DOM wrapping: 'div(className="foo"|id="bar"),MockProvider(mocks=[])'
   -h, --help             display help for command
 ```
 
-Currently works on a single file, with the following assumptions:
-- TypeScript files (*.ts, *.tsx)
-- Components defined with `function`, rather than `const MyComponent = () => ...`
-- Props type is defined in the same file as component
-
-Story files are written based on component name, not input file. An input file of `Foo.tsx` containing `function Bar` and `function Baz` will write `Bar.stories.tsx` and `Baz.stories.tsx`.
+Takes a single TypeScript file (*.ts, *.tsx). Story files are written based on component name, not input file; so a `Foo.tsx` containing `function Bar` and `function Baz` will write `Bar.stories.tsx` and `Baz.stories.tsx`.
 
 To run:
 ```
@@ -34,11 +29,10 @@ npm test -- -u # update snapshots
 ```
 
 ##### TODO:
+- stdin support
 - satisfies operator on args/argTypes
-- Custom types imports
-- Props destructuring within render function
-- Parsing plain JS in addition to TypeScript
-- Multiple files and directories on CLI
+- Recursive type imports and composable types
+- Look for props destructuring within render function
 - More unit test coverage
 
 ##### TODONT:

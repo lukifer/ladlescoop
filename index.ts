@@ -103,7 +103,7 @@ export function run(): void {
 
         case ts.SyntaxKind.ExportAssignment:
           if (!ts.isExportAssignment(statement)) return
-          const [, exportedComponent] = statement.getText()?.match(/^export default ([A-Z][A-Za-z0-9_]*)$/)
+          const [, exportedComponent] = statement.getText()?.match(/^export default ([A-Z][A-Za-z0-9_]*)$/) || []
           if (exportedComponent && state.componentsMap[exportedComponent]) {
             return state = produce(state, (draft) => {
               draft.componentsMap[exportedComponent].isDefaultExport = true

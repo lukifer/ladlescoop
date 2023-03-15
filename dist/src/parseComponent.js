@@ -121,7 +121,7 @@ function mutableAddPropsType(draft, componentName, propName, typeNode, isOptiona
             const node = typeNode.kind === typescript_1.default.SyntaxKind.ArrayType
                 ? (0, tsnode_1.getFirstOfKind)(typeNode, typescript_1.default.SyntaxKind.TypeReference)
                 : typeNode;
-            if (!typescript_1.default.isTypeReferenceNode(node))
+            if (!node || !typescript_1.default.isTypeReferenceNode(node))
                 break;
             if ((0, tsnode_1.isJSX)(typeNode.getText())) {
                 return set({ defaultValue: "<></>" });

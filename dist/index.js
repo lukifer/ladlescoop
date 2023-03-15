@@ -109,7 +109,7 @@ function run() {
                 case ts.SyntaxKind.ExportAssignment:
                     if (!ts.isExportAssignment(statement))
                         return;
-                    const [, exportedComponent] = (_a = statement.getText()) === null || _a === void 0 ? void 0 : _a.match(/^export default ([A-Z][A-Za-z0-9_]*)$/);
+                    const [, exportedComponent] = ((_a = statement.getText()) === null || _a === void 0 ? void 0 : _a.match(/^export default ([A-Z][A-Za-z0-9_]*)$/)) || [];
                     if (exportedComponent && state.componentsMap[exportedComponent]) {
                         return state = (0, immer_1.default)(state, (draft) => {
                             draft.componentsMap[exportedComponent].isDefaultExport = true;

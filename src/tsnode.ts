@@ -165,7 +165,10 @@ export function generateDefaultObject(
       return typeNode.members.reduce<Record<string, unknown>>((obj, propSig: ts.PropertySignature) => {
         const val = generateDefaultObject(propSig)
         if (val === undefined) return obj
-        return {...obj, [propSig.name.getText()]: val}
+        const name = getName(propSig)
+        return name
+          ? {...obj, [name]: val}
+          : obj
       }, {})
     // default:
       // throw new Error(`Unsupported type kind: ${ts.SyntaxKind[typeNode.kind]}`)

@@ -152,7 +152,9 @@ function generateDefaultObject(node) {
                 const val = generateDefaultObject(propSig);
                 if (val === undefined)
                     return obj;
-                return Object.assign(Object.assign({}, obj), { [propSig.name.getText()]: val });
+                const name = getName(propSig);
+                return name
+                    ? Object.assign(Object.assign({}, obj), { [name]: val }) : obj;
             }, {});
         // default:
         // throw new Error(`Unsupported type kind: ${ts.SyntaxKind[typeNode.kind]}`)

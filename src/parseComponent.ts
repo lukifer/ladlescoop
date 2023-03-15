@@ -156,7 +156,7 @@ export function mutableAddPropsType(
       const node = typeNode.kind === ts.SyntaxKind.ArrayType
         ? getFirstOfKind(typeNode, ts.SyntaxKind.TypeReference)
         : typeNode
-      if (!ts.isTypeReferenceNode(node)) break
+      if (!node || !ts.isTypeReferenceNode(node)) break
       if (isJSX(typeNode.getText())) {
         return set({defaultValue: "<></>"})
       }
