@@ -136,14 +136,14 @@ function mutableAddPropsType(draft, componentName, propName, typeNode, isOptiona
                 });
             }
             else if (draft.importsMap[typeName]) {
-                // TODO: defaultValue / argType
+                mutableAddToImports(draft, componentName, typeName);
                 if (draft.complexMap[typeName]) {
-                    mutableAddToImports(draft, componentName, typeName);
                     return set({
                         defaultValue: `${JSON.stringify(draft.complexMap[typeName])}`,
                     });
                 }
                 else {
+                    // TODO: defaultValue / argType
                     const importPath = draft.importsMap[typeName];
                     draft.enumsMap = Object.assign(Object.assign({}, draft.enumsMap), importEnumsFromFile(draft.inputFilePath, importPath));
                 }
